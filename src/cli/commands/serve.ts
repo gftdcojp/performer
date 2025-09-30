@@ -150,7 +150,7 @@ function getNetworkAddresses(host: string, port: number): string[] {
   }
 
   const interfaces = networkInterfaces()
-  for (const [name, nets] of Object.entries(interfaces)) {
+  for (const [, nets] of Object.entries(interfaces)) {
     if (!nets) continue
     for (const net of nets) {
       if (net.family === 'IPv4' && !net.internal) {

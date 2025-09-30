@@ -4,10 +4,6 @@
 import chalk from 'chalk'
 import fs from 'fs-extra'
 import path from 'path'
-import { fileURLToPath } from 'url'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
 // Generation templates
 const templates = {
   domain: {
@@ -307,14 +303,9 @@ export const {{name}}Computation = new {{Name}}Compute()
   },
 }
 
-interface GenerateOptions {
-  domain?: string
-}
-
 export const generateCommand = async (
   type: string,
-  name: string,
-  options: GenerateOptions
+  name: string
 ) => {
   try {
     const template = templates[type as keyof typeof templates]

@@ -1,15 +1,16 @@
 // Init Command
 // Merkle DAG: cli-node -> init-command
 
-import { Command } from 'commander'
 import inquirer from 'inquirer'
 import chalk from 'chalk'
 import ora from 'ora'
 import fs from 'fs-extra'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { dirname } from 'path'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 // Project templates
 const templates = {

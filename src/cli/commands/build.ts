@@ -1,7 +1,7 @@
 // Build Command
 // Merkle DAG: cli-node -> build-command
 
-import { execSync, spawn } from 'child_process'
+import { execSync } from 'child_process'
 import fs from 'fs-extra'
 import path from 'path'
 import chalk from 'chalk'
@@ -29,7 +29,7 @@ export const buildCommand = async (options: BuildOptions) => {
 
     // Check if performer.json exists
     const performerConfigPath = path.join(process.cwd(), 'performer.json')
-    let performerConfig = {}
+    let performerConfig: any = {}
     if (await fs.pathExists(performerConfigPath)) {
       performerConfig = await fs.readJson(performerConfigPath)
     }

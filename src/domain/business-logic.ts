@@ -83,13 +83,13 @@ export class RuleEngine {
   ): BusinessLogic<boolean> =>
     pipe(
       rule.validate(input),
-      T.chain((isValid) =>
+      Effect.flatMap((isValid) =>
         isValid
           ? pipe(
               rule.execute(input),
-              T.map(() => true)
+              Effect.map(() => true)
             )
-          : T.succeed(false)
+          : Effect.succeed(false)
       )
     )
 
@@ -98,12 +98,12 @@ export class RuleEngine {
     inputs: readonly A[]
   ): BusinessLogic<B> =>
     pipe(
-      T.forEach_(inputs, (input) =>
-        T.forEach_(workflow.steps, (step) =>
+      Effect.forEach(inputs, (input) =>
+        Effect.forEach(workflow.steps, (step) =>
           RuleEngine.executeRule(step, input)
         )
       ),
-      T.map(workflow.aggregator)
+      Effect.map(workflow.aggregator)
     )
 }
 
@@ -111,7 +111,7 @@ export class RuleEngine {
 export interface DomainService {
   readonly processBusinessLogic: <A>(
     logic: BusinessLogic<A>
-  ) => T.Effect<never, Error, A>
+  ) => Effect.Effect<never, Error, A>
 
   readonly createWorkflow: <A, B>(
     name: string,
@@ -121,7 +121,7 @@ export interface DomainService {
 
   readonly validateEntity: <T extends BusinessEntity>(
     entity: T
-  ) => T.Effect<never, Error, boolean>
+  ) => Effect.Effect<never, Error, boolean>
 }
 
 export const DomainServiceLive: DomainService = {
@@ -129,12 +129,12 @@ export const DomainServiceLive: DomainService = {
   processBusinessLogic: <A>(logic: BusinessLogic<A>) =>
     pipe(
       logic,
-      T.provideService(ActorDBService)({
-        writeEvent: (event) => T.succeed(undefined), // Placeholder
-        readEvents: (entityId) => T.succeed([]), // Placeholder
-        createProjection: (name, events) => T.succeed({}), // Placeholder
+      Effect.provideService(ActorDBService, {
+        writeEvent: (event) => Effect.succeed(undefined), // Placeholder
+        readEvents: (entityId) => Effect.succeed([]), // Placeholder
+        createProjection: (name, events) => Effect.succeed({}), // Placeholder
       }),
-      T.catchAll((error) => T.fail(new Error(`Business logic failed: ${error.message}`)))
+      Effect.catchAll((error) => Effect.fail(new Error(`Business logic failed: ${error.message}`)))
     ),
 
   createWorkflow: (name, steps, aggregator) => ({
@@ -144,7 +144,7 @@ export const DomainServiceLive: DomainService = {
   }),
 
   validateEntity: (entity) =>
-    T.succeed(
+    Effect.succeed(
       !!(entity.id && entity.createdAt && entity.updatedAt)
     ),
 }
