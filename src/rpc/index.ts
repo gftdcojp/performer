@@ -145,5 +145,23 @@ export function quickStartPerformer(baseURL: string, token?: string, storagePath
  *
  * const { data: result } = await performer.functions.invoke('hello-world', { name: 'World' });
  * console.log('Function result:', result);
+ *
+ * // Real-time subscriptions
+ * const channel = performer.realtime.channel('room-1');
+ *
+ * channel
+ *   .on('broadcast', (payload) => {
+ *     console.log('Broadcast received:', payload.payload);
+ *   })
+ *   .on('postgres_changes', (payload) => {
+ *     console.log('Database change:', payload.eventType, payload.table);
+ *   })
+ *   .subscribe();
+ *
+ * // Send broadcast message
+ * channel.send('message', { text: 'Hello, everyone!' });
+ *
+ * // Track presence
+ * channel.track({ user_id: 'user123', online_at: new Date().toISOString() });
  * ```
  */

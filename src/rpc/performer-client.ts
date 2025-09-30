@@ -163,6 +163,62 @@ export interface FunctionsError {
   details?: unknown;
 }
 
+// Realtime types (Supabase Realtime equivalent)
+export interface RealtimeChannel {
+  topic: string;
+  subscribed: boolean;
+  subscribe(): RealtimeChannel;
+  unsubscribe(): void;
+  on(event: string, callback: (payload: RealtimePayload) => void): RealtimeChannel;
+  off(event: string, callback?: (payload: RealtimePayload) => void): RealtimeChannel;
+  send(event: string, payload?: Record<string, unknown>): RealtimeChannel;
+}
+
+export interface RealtimePayload {
+  eventType: string;
+  payload: Record<string, unknown>;
+  commit_timestamp: string;
+  errors?: string[];
+}
+
+export interface DatabaseChangePayload extends RealtimePayload {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new?: Record<string, unknown>;
+  old?: Record<string, unknown>;
+  schema: string;
+  table: string;
+  commit_timestamp: string;
+}
+
+export interface BroadcastPayload extends RealtimePayload {
+  eventType: string;
+  payload: Record<string, unknown>;
+}
+
+export interface PresencePayload extends RealtimePayload {
+  eventType: 'JOIN' | 'LEAVE' | 'SYNC';
+  currentPresences: Presence[];
+  newPresences: Presence[];
+  leftPresences: Presence[];
+}
+
+export interface Presence {
+  presence_ref: string;
+  presence_state: Record<string, unknown>;
+}
+
+export interface RealtimeOptions {
+  events?: string[];
+  schema?: string;
+  table?: string;
+  filter?: string;
+}
+
+export interface RealtimeError {
+  message: string;
+  details?: unknown;
+}
+
 type Operator =
   | 'eq'
   | 'neq'
@@ -1236,6 +1292,341 @@ export class FunctionsAPI {
 }
 
 /**
+ * RealtimeAPI provides WebSocket-based real-time communication.
+ * Similar to Supabase Realtime but integrated with ActorDB event streaming.
+ */
+export class RealtimeAPI {
+  private actorDB: ActorDBClient;
+  private wsClient: any; // ActorDBWebSocketClient
+  private channels = new Map<string, RealtimeChannelImpl>();
+
+  constructor(actorDB: ActorDBClient) {
+    this.actorDB = actorDB;
+    this.initializeWebSocketClient();
+  }
+
+  private async initializeWebSocketClient() {
+    try {
+      // Import ActorDBWebSocketClient dynamically
+      const { ActorDBWebSocketClient } = await import('./actordb-client');
+      this.wsClient = new ActorDBWebSocketClient({
+        host: 'localhost', // In production, get from config
+        port: 9091,
+        secure: false,
+        timeout: 30000,
+        token: 'mock_token', // In production, get from auth
+      });
+    } catch (error) {
+      console.warn('WebSocket client not available, using fallback mode');
+      this.wsClient = null;
+    }
+  }
+
+  /**
+   * Create a new realtime channel.
+   * @param topic - The channel topic/name.
+   */
+  channel(topic: string): RealtimeChannel {
+    if (this.channels.has(topic)) {
+      return this.channels.get(topic)!;
+    }
+
+    const channel = new RealtimeChannelImpl(topic, this.actorDB, this.wsClient);
+    this.channels.set(topic, channel);
+    return channel;
+  }
+
+  /**
+   * Remove a channel.
+   * @param topic - The channel topic to remove.
+   */
+  removeChannel(topic: string): void {
+    const channel = this.channels.get(topic);
+    if (channel) {
+      channel.unsubscribe();
+      this.channels.delete(topic);
+    }
+  }
+
+  /**
+   * Get all active channels.
+   */
+  getChannels(): RealtimeChannel[] {
+    return Array.from(this.channels.values());
+  }
+
+  /**
+   * Disconnect all channels and cleanup.
+   */
+  disconnect(): void {
+    for (const channel of this.channels.values()) {
+      channel.unsubscribe();
+    }
+    this.channels.clear();
+  }
+}
+
+/**
+ * RealtimeChannel implementation.
+ */
+export class RealtimeChannelImpl implements RealtimeChannel {
+  private _topic: string;
+  private actorDB: ActorDBClient;
+  private wsClient: any;
+  private _subscribed: boolean = false;
+  private eventListeners = new Map<string, Set<(payload: RealtimePayload) => void>>();
+  private presenceState: Map<string, Presence> = new Map();
+  private presenceRef: string;
+
+  constructor(topic: string, actorDB: ActorDBClient, wsClient: any) {
+    this._topic = topic;
+    this.actorDB = actorDB;
+    this.wsClient = wsClient;
+    this.presenceRef = `presence_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  get topic(): string {
+    return this._topic;
+  }
+
+  get subscribed(): boolean {
+    return this._subscribed;
+  }
+
+  /**
+   * Subscribe to the channel.
+   */
+  subscribe(): RealtimeChannel {
+    if (this._subscribed) return this;
+
+    this._subscribed = true;
+
+    // Connect to WebSocket if available
+    if (this.wsClient) {
+      this.connectWebSocket();
+    }
+
+    // Emit join event for presence
+    this.emitPresenceEvent('JOIN', {
+      presence_ref: this.presenceRef,
+      presence_state: { user_id: 'current_user' }, // In production, get from auth
+    });
+
+    return this;
+  }
+
+  /**
+   * Unsubscribe from the channel.
+   */
+  unsubscribe(): void {
+    if (!this._subscribed) return;
+
+    this._subscribed = false;
+
+    // Emit leave event for presence
+    this.emitPresenceEvent('LEAVE', {
+      presence_ref: this.presenceRef,
+      presence_state: {},
+    });
+
+    // Disconnect WebSocket
+    if (this.wsClient) {
+      this.disconnectWebSocket();
+    }
+
+    // Clear all listeners
+    this.eventListeners.clear();
+  }
+
+  /**
+   * Listen to events on the channel.
+   * @param event - The event type to listen for.
+   * @param callback - The callback function.
+   */
+  on(event: string, callback: (payload: RealtimePayload) => void): RealtimeChannel {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, new Set());
+    }
+    this.eventListeners.get(event)!.add(callback);
+    return this;
+  }
+
+  /**
+   * Stop listening to events on the channel.
+   * @param event - The event type to stop listening for.
+   * @param callback - The specific callback to remove (optional).
+   */
+  off(event: string, callback?: (payload: RealtimePayload) => void): RealtimeChannel {
+    if (!this.eventListeners.has(event)) return this;
+
+    const listeners = this.eventListeners.get(event)!;
+    if (callback) {
+      listeners.delete(callback);
+    } else {
+      listeners.clear();
+    }
+
+    if (listeners.size === 0) {
+      this.eventListeners.delete(event);
+    }
+
+    return this;
+  }
+
+  /**
+   * Send a message to the channel.
+   * @param event - The event type.
+   * @param payload - The payload to send.
+   */
+  send(event: string, payload: Record<string, unknown> = {}): RealtimeChannel {
+    if (!this._subscribed) return this;
+
+    const broadcastPayload: BroadcastPayload = {
+      eventType: event,
+      payload,
+      commit_timestamp: new Date().toISOString(),
+    };
+
+    // Emit to local listeners
+    this.emitEvent(event, broadcastPayload);
+
+    // Send via WebSocket if available
+    if (this.wsClient) {
+      this.sendWebSocketMessage({
+        type: 'broadcast',
+        topic: this._topic,
+        event,
+        payload,
+      });
+    }
+
+    return this;
+  }
+
+  /**
+   * Track presence state.
+   * @param state - The presence state to track.
+   */
+  track(state: Record<string, unknown>): RealtimeChannel {
+    this.presenceState.set(this.presenceRef, {
+      presence_ref: this.presenceRef,
+      presence_state: state,
+    });
+
+    this.emitPresenceEvent('SYNC', {
+      presence_ref: this.presenceRef,
+      presence_state: state,
+    });
+
+    return this;
+  }
+
+  /**
+   * Untrack presence state.
+   */
+  untrack(): RealtimeChannel {
+    this.presenceState.delete(this.presenceRef);
+
+    this.emitPresenceEvent('LEAVE', {
+      presence_ref: this.presenceRef,
+      presence_state: {},
+    });
+
+    return this;
+  }
+
+  private emitEvent(event: string, payload: RealtimePayload): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      listeners.forEach(callback => {
+        try {
+          callback(payload);
+        } catch (error) {
+          console.error('Error in realtime event listener:', error);
+        }
+      });
+    }
+  }
+
+  private emitPresenceEvent(eventType: 'JOIN' | 'LEAVE' | 'SYNC', presence: Presence): void {
+    const payload: PresencePayload = {
+      eventType,
+      payload: {},
+      commit_timestamp: new Date().toISOString(),
+      currentPresences: Array.from(this.presenceState.values()),
+      newPresences: eventType === 'JOIN' ? [presence] : [],
+      leftPresences: eventType === 'LEAVE' ? [presence] : [],
+    };
+
+    this.emitEvent('presence', payload);
+  }
+
+  private async connectWebSocket(): Promise<void> {
+    if (!this.wsClient) {
+      console.warn('WebSocket client not available, using local-only mode');
+      return;
+    }
+
+    try {
+      await this.wsClient.connect();
+
+      // Subscribe to database changes for this topic
+      this.wsClient.send({
+        type: 'subscribe',
+        topic: this._topic,
+        events: ['database_changes', 'broadcast', 'presence'],
+      });
+
+      // Set up message handler
+      this.wsClient.subscribeToEvents('*', (event: any) => {
+        this.handleWebSocketMessage(event);
+      });
+
+    } catch (error) {
+      console.warn('Failed to connect WebSocket for realtime, falling back to local mode:', error);
+    }
+  }
+
+  private disconnectWebSocket(): void {
+    if (!this.wsClient || this.wsClient.readyState !== WebSocket.OPEN) return;
+
+    this.wsClient.send({
+      type: 'unsubscribe',
+      topic: this._topic,
+    });
+  }
+
+  private sendWebSocketMessage(message: Record<string, unknown>): void {
+    if (this.wsClient && this.wsClient.readyState === WebSocket.OPEN) {
+      this.wsClient.send(message);
+    }
+  }
+
+  private handleWebSocketMessage(event: any): void {
+    // Handle incoming WebSocket messages
+    if (event.eventType === 'database_change') {
+      const payload: DatabaseChangePayload = {
+        eventType: event.payload.eventType,
+        new: event.payload.new,
+        old: event.payload.old,
+        schema: event.payload.schema,
+        table: event.payload.table,
+        commit_timestamp: event.payload.commit_timestamp,
+        payload: event.payload,
+      };
+      this.emitEvent('postgres_changes', payload);
+    } else if (event.eventType === 'broadcast') {
+      const payload: BroadcastPayload = {
+        eventType: event.payload.event,
+        payload: event.payload.payload,
+        commit_timestamp: new Date().toISOString(),
+      };
+      this.emitEvent('broadcast', payload);
+    }
+  }
+}
+
+/**
  * The main client for interacting with the Performer backend (ActorDB).
  * Provides a high-level API inspired by Supabase.
  */
@@ -1244,12 +1635,14 @@ export class PerformerClient {
   private _auth: AuthAPI;
   private _storage: StorageAPI;
   private _functions: FunctionsAPI;
+  private _realtime: RealtimeAPI;
 
   constructor(actorDB: ActorDBClient, storagePath: string = './storage') {
     this.actorDB = actorDB;
     this._auth = new AuthAPI(actorDB);
     this._storage = new StorageAPI(actorDB, storagePath);
     this._functions = new FunctionsAPI(actorDB);
+    this._realtime = new RealtimeAPI(actorDB);
   }
 
   /**
@@ -1289,6 +1682,13 @@ export class PerformerClient {
    */
   get functions(): FunctionsAPI {
     return this._functions;
+  }
+
+  /**
+   * Realtime API - WebSocket-based real-time communication (Supabase Realtime equivalent).
+   */
+  get realtime(): RealtimeAPI {
+    return this._realtime;
   }
 
   /**
