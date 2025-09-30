@@ -6,7 +6,9 @@
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "test:actordb": "npx tsx test/run-actordb-tests.ts",
+    "simulator": "npx tsx test/actordb-simulator.ts"
   },
   "dependencies": {
     "@effect-ts/core": "^0.60.0",

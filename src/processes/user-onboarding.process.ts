@@ -125,13 +125,86 @@ export const onboardingMachine = createMachine({
         // Provide the services (this will be injected at runtime)
         // Note: In a real application, these would be provided by the framework
         Effect.provide(Layer.merge(
+          // Use real ActorDB client for data persistence testing
           Layer.succeed(RpcService, RpcService.of({
             checkUsername: (username) => Effect.tryPromise({
               try: async () => {
-                console.log(`[Mock RPC] Checking username: ${username}`);
-                await new Promise(resolve => setTimeout(resolve, 500));
-                if (username === "admin") throw { _tag: "UsernameTakenError" };
-                if (username.length < 3) throw { _tag: "InvalidFormatError" };
+                console.log(`[Real ActorDB] Checking username: ${username}`);
+
+                // Write username check event to ActorDB
+                const eventId = `username-check-${Date.now()}`;
+                await fetch('http://localhost:9091/api/v1/events.write', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    id: eventId,
+                    params: {
+                      entityId: `username-${username}`,
+                      eventType: 'username_check_requested',
+                      payload: { username, requestedAt: new Date() },
+                      timestamp: new Date().toISOString(),
+                      version: 1
+                    }
+                  })
+                });
+
+                // Simulate username validation
+                await new Promise(resolve => setTimeout(resolve, 200));
+
+                if (username === "admin") {
+                  // Log taken username event
+                  await fetch('http://localhost:9091/api/v1/events.write', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      id: `taken-${eventId}`,
+                      params: {
+                        entityId: `username-${username}`,
+                        eventType: 'username_check_failed',
+                        payload: { username, reason: 'taken', checkedAt: new Date() },
+                        timestamp: new Date().toISOString(),
+                        version: 2
+                      }
+                    })
+                  });
+                  throw { _tag: "UsernameTakenError" };
+                }
+
+                if (username.length < 3) {
+                  // Log invalid format event
+                  await fetch('http://localhost:9091/api/v1/events.write', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      id: `invalid-${eventId}`,
+                      params: {
+                        entityId: `username-${username}`,
+                        eventType: 'username_check_failed',
+                        payload: { username, reason: 'invalid_format', checkedAt: new Date() },
+                        timestamp: new Date().toISOString(),
+                        version: 2
+                      }
+                    })
+                  });
+                  throw { _tag: "InvalidFormatError" };
+                }
+
+                // Log successful check event
+                await fetch('http://localhost:9091/api/v1/events.write', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    id: `success-${eventId}`,
+                    params: {
+                      entityId: `username-${username}`,
+                      eventType: 'username_check_succeeded',
+                      payload: { username, available: true, checkedAt: new Date() },
+                      timestamp: new Date().toISOString(),
+                      version: 2
+                    }
+                  })
+                });
+
                 return { available: true };
               },
               catch: (error: any) => {
@@ -142,11 +215,34 @@ export const onboardingMachine = createMachine({
             })
           })),
           Layer.succeed(CapabilityService, CapabilityService.of({
-            hasCapability: (capability) => {
-              console.log(`[Mock Capability] Checking: ${capability}`);
-              // Always allow for demo
-              return Effect.succeed(undefined);
-            }
+            hasCapability: (capability) => Effect.tryPromise({
+              try: async () => {
+                console.log(`[Real ActorDB] Checking capability: ${capability}`);
+
+                // Log capability check to ActorDB
+                await fetch('http://localhost:9091/api/v1/events.write', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    id: `capability-${Date.now()}`,
+                    params: {
+                      entityId: `capability-check-${capability}`,
+                      eventType: 'capability_checked',
+                      payload: { capability, granted: true, checkedAt: new Date() },
+                      timestamp: new Date().toISOString(),
+                      version: 1
+                    }
+                  })
+                });
+
+                // Always allow for demo purposes
+                return undefined;
+              },
+              catch: (error: any) => {
+                console.error('Capability check failed:', error);
+                throw error;
+              }
+            })
           }))
         ))
       )
