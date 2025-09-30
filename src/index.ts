@@ -4,6 +4,9 @@
 // Export business processes
 export { userOnboardingProcess } from "./processes/user-onboarding.process";
 
+// Export sagas (composed processes)
+export { completeUserOnboardingSagaProcess } from "./sagas/complete-user-onboarding.saga";
+
 // Export services (for advanced usage)
 export { RpcService, RpcServiceLive, RpcServiceMock } from "./rpc/client";
 export { CapabilityService, CapabilityServiceLive, PermissionDeniedError } from "./capabilities/checker";

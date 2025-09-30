@@ -8,6 +8,7 @@
     "serve": "vite preview",
     "test": "vitest",
     "test:actordb": "npx tsx test/run-actordb-tests.ts",
+    "test:saga": "npx tsx test/saga-integration-test.ts",
     "simulator": "npx tsx test/actordb-simulator.ts"
   },
   "dependencies": {
