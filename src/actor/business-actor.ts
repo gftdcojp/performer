@@ -1,5 +1,6 @@
 // Business Process Actor Implementation using Effect Actor
 // Merkle DAG: actor-node -> business-actor
+// Extended with real-time event broadcasting
 
 import { Effect } from "effect"
 import { ActorSystemUtils } from "./effect-actor"
@@ -14,12 +15,16 @@ import {
   ActorSystem as ActorSystemInterface,
   ActorConfig
 } from "./types"
+import { RealtimeService, RealtimeEvent } from "../realtime"
 // Temporarily comment out DomainServiceLive import to fix test issues
 // import { DomainServiceLive } from "../domain/business-logic"
 
-// Business Actor Behavior Implementation with Enhanced Supervision
+// Business Actor Behavior Implementation with Enhanced Supervision and Real-time Broadcasting
 // Merkle DAG: business-actor-behavior
-export const createBusinessActorBehavior = (): ActorBehavior => {
+export const createBusinessActorBehavior = (
+  realtimeService?: RealtimeService,
+  actorId?: string
+): ActorBehavior => {
   return (state: ActorState, message: ActorMessage, context: any) => {
     return Effect.gen(function* () {
       try {
@@ -40,13 +45,29 @@ export const createBusinessActorBehavior = (): ActorBehavior => {
               version: state.events.length + 1,
             }
 
-            return {
+            const newState = {
               ...state,
               entityId: entity.id,
               currentState: entity,
               events: [...state.events, newEvent],
               error: undefined,
             }
+
+            // Broadcast real-time event if service is available
+            if (realtimeService && actorId) {
+              const realtimeEvent: RealtimeEvent = {
+                id: `${actorId}-event-${newEvent.version}`,
+                type: 'entity_created',
+                payload: entity,
+                actorId: actorId,
+                version: newEvent.version,
+                timestamp: newEvent.timestamp
+              }
+
+              yield* realtimeService.broadcastEvent(realtimeEvent)
+            }
+
+            return newState
           }
 
           case "EntityUpdated": {
@@ -70,12 +91,28 @@ export const createBusinessActorBehavior = (): ActorBehavior => {
               version: state.events.length + 1,
             }
 
-            return {
+            const newState = {
               ...state,
               currentState: { ...state.currentState, ...updates },
               events: [...state.events, newEvent],
               error: undefined,
             }
+
+            // Broadcast real-time event if service is available
+            if (realtimeService && actorId) {
+              const realtimeEvent: RealtimeEvent = {
+                id: `${actorId}-event-${newEvent.version}`,
+                type: 'entity_updated',
+                payload: updates,
+                actorId: actorId,
+                version: newEvent.version,
+                timestamp: newEvent.timestamp
+              }
+
+              yield* realtimeService.broadcastEvent(realtimeEvent)
+            }
+
+            return newState
           }
 
           case "ExecuteBusinessLogic": {
@@ -97,11 +134,27 @@ export const createBusinessActorBehavior = (): ActorBehavior => {
                     5000 // 5 second timeout
                   )
 
-                  return {
+                  const newState = {
                     ...state,
                     currentState: { ...state.currentState, result },
                     error: undefined,
                   }
+
+                  // Broadcast real-time event if service is available
+                  if (realtimeService && actorId) {
+                    const realtimeEvent: RealtimeEvent = {
+                      id: `${actorId}-logic-${Date.now()}`,
+                      type: 'business_logic_executed',
+                      payload: { logic, result },
+                      actorId: actorId,
+                      version: state.events.length + 1,
+                      timestamp: new Date()
+                    }
+
+                    yield* realtimeService.broadcastEvent(realtimeEvent)
+                  }
+
+                  return newState
                 } catch (timeoutError) {
               // Log timeout and escalate to supervisor
               console.error(`Business logic execution timed out for logic: ${logic}`)
@@ -132,7 +185,8 @@ export class ActorFactory {
   // Merkle DAG: actor-factory
   static createBusinessActor = (
     id: string,
-    config?: ActorConfig
+    config?: ActorConfig,
+    realtimeService?: RealtimeService
   ): Effect.Effect<BusinessProcessActor, Error, never> => {
     return Effect.gen(function* () {
       // Create actor system
@@ -144,8 +198,8 @@ export class ActorFactory {
         events: [],
       }
 
-      // Create behavior
-      const behavior = createBusinessActorBehavior()
+      // Create behavior with real-time support
+      const behavior = createBusinessActorBehavior(realtimeService, id)
 
       // Create actor
       const actorRef = yield* system.make(id, initialState, behavior, {
@@ -231,12 +285,18 @@ export class ActorRegistryImpl {
 export class ActorCoordinator {
   // Merkle DAG: actor-coordinator
   private registry = new ActorRegistryImpl()
+  private realtimeService?: RealtimeService
+
+  // Set real-time service for all actors
+  setRealtimeService(service: RealtimeService): void {
+    this.realtimeService = service
+  }
 
   createBusinessActor(
     id: string,
     config?: ActorConfig
   ): Effect.Effect<BusinessProcessActor, Error, never> {
-    return ActorFactory.createBusinessActor(id, config)
+    return ActorFactory.createBusinessActor(id, config, this.realtimeService)
   }
 
   registerActor(id: string, actorRef: any): Effect.Effect<void, never, never> {

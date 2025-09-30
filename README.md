@@ -20,7 +20,7 @@ Performerは、**Supabaseを凌駕する6つの主要コンポーネント**を�
 | **🔐 Authentication** | Supabase Auth | JWT認証 + RBAC + ActorDB Security | ゼロトラストセキュリティ |
 | **📦 Storage** | Supabase Storage | ファイル管理 + URL生成 + ActorDBメタデータ | メタデータ追跡 |
 | **⚡ Functions** | Supabase Edge Functions | WASMベースサーバーレス関数 | WebAssemblyネイティブ |
-| **🔄 Realtime** | Supabase Realtime | WebSocketベースリアルタイム通信 | イベントストリーム統合 |
+| **🔄 Realtime** | Supabase Realtime | **Rivet-like リアルタイム同期** | **イベントソーシング + WebSocket + CRDT** |
 | **📊 Analytics** | Supabase Analytics | 使用状況分析・パフォーマンス監視 | 包括的な監視 |
 
 ### 🚀 革新的な機能
@@ -30,6 +30,83 @@ Performerは、**Supabaseを凌駕する6つの主要コンポーネント**を�
 - **プロセスレジストリ** - 実行時のプロセス発見・管理
 - **リアルタイム監視** - システム全体の健全性チェックとアラート
 - **イベント駆動アーキテクチャ** - ActorDBイベントストリームによる疎結合設計
+- **🔥 Rivet-like リアルタイム同期** - アクター + WebSocket + CRDTによる強力な同期
+- **スナップショット & リプレイ** - 効率的な状態同期とイベント再生
+- **衝突解決** - 複数クライアント間の競合を自動解決
+
+## ⚡ リアルタイム同期機能
+
+Performerは **Rivet に匹敵する強力なリアルタイム同期機能** を提供します。イベントソーシング、WebSocket、CRDT（Conflict-free Replicated Data Types）を組み合わせた独自のアーキテクチャにより、Supabase Realtime を凌駕するパフォーマンスと信頼性を実現しています。
+
+### 特徴
+
+- **アクター + WebSocket イベント** - Rivet と同じ思想で設計された同期パターン
+- **ローカルファースト同期** - クライアントサイドでの即時反映 + サーバ同期
+- **CRDT ベース衝突解決** - 複数ユーザー間の競合を自動解決
+- **スナップショット最適化** - O(n) → O(k)+O(Δ) の計算量削減
+- **因果整合性保証** - イベントの因果関係を維持した同期
+
+### 基本的な使い方
+
+```typescript
+import { createRealtimeService, setRealtimeService } from 'performer'
+
+// リアルタイムサービスを作成
+const realtimeService = await createRealtimeService(actorDBClient, 'ws://localhost:8080')
+
+// アクターシステムにリアルタイムサービスを設定
+setRealtimeService(realtimeService)
+
+// チャンネル購読
+const subscriptionId = await realtimeService.subscribeChannel({
+  channelId: 'room-1',
+  actorId: 'chat-room-1',
+  filters: { eventTypes: ['message_sent', 'user_joined'] }
+})
+
+// イベントブロードキャスト
+await realtimeService.broadcastEvent({
+  id: 'msg-123',
+  type: 'message_sent',
+  payload: { userId: 'alice', content: 'Hello!' },
+  actorId: 'chat-room-1',
+  version: 1,
+  timestamp: new Date()
+})
+
+// 状態同期
+const snapshot = await realtimeService.syncActor('chat-room-1', 0)
+```
+
+### 高度な機能
+
+```typescript
+// スナップショット管理
+const snapshot = await realtimeService.createSnapshot('my-actor')
+const latestSnapshot = await realtimeService.getSnapshot('my-actor')
+
+// 衝突解決
+const resolvedEvent = await realtimeService.resolveConflict(
+  conflictingEvents,
+  'last_write_wins' // or 'causal_order', 'merge'
+)
+
+// カスタムCRDTマージ関数
+const crdtService = createCRDTStateManager(eventStore)
+const mergedState = await crdtService.mergeCRDTStates(states, customMergeFunction)
+```
+
+### デモ実行
+
+```bash
+# リアルタイムチャットデモを開始
+pnpm run demo:chat
+
+# 新しいタブでクライアントを開く
+pnpm run demo:chat:client
+```
+
+デモでは、**複数タブ間でリアルタイムチャット** が体験できます。各タブは別ユーザーとして接続され、メッセージ送信時にすべてのクライアントに即座に反映されます。
 
 ## 📦 インストール
 

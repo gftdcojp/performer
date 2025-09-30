@@ -15,6 +15,9 @@ export { processMetadata as completeUserOnboardingMetadata } from "./processes/c
 export { RpcService, RpcServiceLive, RpcServiceMock } from "./rpc/client";
 export { CapabilityService, CapabilityServiceLive, PermissionDeniedError } from "./capabilities/checker";
 
+// Export real-time synchronization (Rivet-like capabilities)
+export * from "./realtime";
+
 // Export types (for TypeScript users)
 export type { RpcService, CapabilityService } from "./processes/user-onboarding";
 

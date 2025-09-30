@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performer Real-time Chat Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+
+        .chat-header p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: #4f46e5;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.other {
+            background: #e2e8f0;
+            color: #374151;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.system {
+            background: #fef3c7;
+            color: #92400e;
+            margin: 8px auto;
+            max-width: 90%;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .message-timestamp {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+
+        .chat-input button {
+            padding: 12px 24px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chat-input button:hover {
+            background: #4338ca;
+        }
+
+        .status {
+            padding: 8px 20px;
+            background: #ecfdf5;
+            color: #065f46;
+            text-align: center;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #d1fae5;
+        }
+
+        .status.connecting {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .user-info {
+            padding: 12px 20px;
+            background: #f3f4f6;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #4f46e5;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Performer Chat</h1>
+            <p>Rivet-like Real-time Synchronization Demo</p>
+        </div>
+
+        <div class="status" id="status">Connecting...</div>
+
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <div>
+                <div style="font-weight: 500;" id="userName">Connecting...</div>
+                <div style="font-size: 0.8rem; color: #6b7280;" id="userStatus">Initializing</div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="messages">
+            <div class="message system">
+                Welcome to Performer real-time chat demo!
+                <div class="message-timestamp">Just now</div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Type a message..." />
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // Simple WebSocket chat client for demo
+        class ChatClient {
+            constructor() {
+                this.ws = null;
+                this.userId = 'user-' + Math.random().toString(36).substr(2, 9);
+                this.roomId = 'chat-room-1';
+                this.isConnected = false;
+
+                this.initUI();
+                this.connect();
+            }
+
+            initUI() {
+                this.statusEl = document.getElementById('status');
+                this.userAvatarEl = document.getElementById('userAvatar');
+                this.userNameEl = document.getElementById('userName');
+                this.userStatusEl = document.getElementById('userStatus');
+                this.messagesEl = document.getElementById('messages');
+                this.messageInputEl = document.getElementById('messageInput');
+                this.sendButtonEl = document.getElementById('sendButton');
+
+                // Set user info
+                this.userAvatarEl.textContent = this.userId.charAt(0).toUpperCase();
+                this.userNameEl.textContent = this.userId;
+
+                // Event listeners
+                this.sendButtonEl.addEventListener('click', () => this.sendMessage());
+                this.messageInputEl.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+            }
+
+            connect() {
+                this.updateStatus('connecting', 'Connecting to chat server...');
+
+                try {
+                    this.ws = new WebSocket('ws://localhost:8080');
+
+                    this.ws.onopen = () => {
+                        this.isConnected = true;
+                        this.updateStatus('connected', 'Connected to chat room');
+                        this.userStatusEl.textContent = 'Online';
+
+                        // Join the room
+                        this.joinRoom();
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.handleMessage(message);
+                        } catch (error) {
+                            console.error('Failed to parse message:', error);
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        this.isConnected = false;
+                        this.updateStatus('disconnected', 'Disconnected from server');
+                        this.userStatusEl.textContent = 'Offline';
+
+                        // Attempt to reconnect after 3 seconds
+                        setTimeout(() => this.connect(), 3000);
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.updateStatus('disconnected', 'Connection error');
+                    };
+
+                } catch (error) {
+                    console.error('Failed to connect:', error);
+                    this.updateStatus('disconnected', 'Failed to connect');
+                }
+            }
+
+            joinRoom() {
+                // Send sync request to get current room state
+                this.send({
+                    type: 'sync_request',
+                    payload: {
+                        actorId: this.roomId,
+                        sinceVersion: 0
+                    }
+                });
+            }
+
+            sendMessage() {
+                const content = this.messageInputEl.value.trim();
+                if (!content || !this.isConnected) return;
+
+                // Send message via broadcast
+                this.send({
+                    type: 'broadcast',
+                    payload: {
+                        type: 'message_sent',
+                        payload: {
+                            userId: this.userId,
+                            content: content
+                        },
+                        actorId: this.roomId,
+                        timestamp: new Date().toISOString()
+                    }
+                });
+
+                // Clear input
+                this.messageInputEl.value = '';
+
+                // Add message to UI immediately (optimistic update)
+                this.addMessage({
+                    type: 'user',
+                    userId: this.userId,
+                    content: content,
+                    timestamp: new Date()
+                }, true);
+            }
+
+            send(message) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(message));
+                }
+            }
+
+            handleMessage(message) {
+                switch (message.type) {
+                    case 'sync_response':
+                        this.handleSyncResponse(message.payload);
+                        break;
+                    case 'broadcast':
+                        this.handleBroadcast(message.payload);
+                        break;
+                    default:
+                        console.log('Received message:', message);
+                }
+            }
+
+            handleSyncResponse(response) {
+                // Handle initial sync response
+                console.log('Sync response:', response);
+
+                if (response.snapshot && response.snapshot.state) {
+                    const state = response.snapshot.state;
+
+                    // Add existing messages
+                    if (state.messages) {
+                        state.messages.forEach(msg => {
+                            this.addMessage(msg, false);
+                        });
+                    }
+                }
+            }
+
+            handleBroadcast(payload) {
+                // Handle broadcast messages
+                if (payload.type === 'message_sent') {
+                    this.addMessage({
+                        type: 'user',
+                        userId: payload.payload.userId,
+                        content: payload.payload.content,
+                        timestamp: new Date(payload.timestamp)
+                    }, false);
+                } else if (payload.type === 'user_joined' || payload.type === 'user_left') {
+                    this.addMessage({
+                        type: 'system',
+                        content: payload.payload.userId + (payload.type === 'user_joined' ? ' joined' : ' left') + ' the room',
+                        timestamp: new Date(payload.timestamp)
+                    }, false);
+                }
+            }
+
+            addMessage(message, isOwn = false) {
+                const messageEl = document.createElement('div');
+                messageEl.className = `message ${message.type === 'system' ? 'system' : (isOwn ? 'user' : 'other')}`;
+
+                let content = '';
+                if (message.type === 'user') {
+                    content = `<strong>${message.userId}:</strong> ${message.content}`;
+                } else {
+                    content = message.content;
+                }
+
+                messageEl.innerHTML = content;
+
+                const timestampEl = document.createElement('div');
+                timestampEl.className = 'message-timestamp';
+                timestampEl.textContent = this.formatTime(message.timestamp);
+
+                messageEl.appendChild(timestampEl);
+                this.messagesEl.appendChild(messageEl);
+
+                // Scroll to bottom
+                this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+            }
+
+            updateStatus(status, text) {
+                this.statusEl.textContent = text;
+                this.statusEl.className = `status ${status}`;
+            }
+
+            formatTime(date) {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+        }
+
+        // Initialize chat client when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ChatClient();
+        });
+    </script>
+</body>
+</html>

@@ -1,9 +1,11 @@
 // Actor Layer using Effect Actor
 // Merkle DAG: actor-node
+// Extended with real-time synchronization support
 
 import { Effect } from "effect"
 import { ActorCoordinator, ActorSystemManager } from "./business-actor"
 import { ActorConfig } from "./types"
+import { RealtimeService } from "../realtime"
 
 // Actor coordinator instance
 export const actorCoordinator = new ActorCoordinator()
@@ -27,6 +29,11 @@ export const initializeActorSystem = () => {
 // Shutdown actor system
 export const shutdownActorSystem = () => {
   return actorSystemManager.shutdown()
+}
+
+// Set real-time service for actor system
+export const setRealtimeService = (service: RealtimeService) => {
+  actorCoordinator.setRealtimeService(service)
 }
 
 // Utility function to run actor operations

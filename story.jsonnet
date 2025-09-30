@@ -58,6 +58,14 @@
       description: 'RPC communication layer for ActorDB integration'
     },
 
+    // Real-time Synchronization Layer (Rivet-like)
+    realtime: {
+      type: 'websocket-eventsourcing',
+      deps: ['rpc', 'actor'],
+      provides: ['realtime-sync', 'event-broadcast', 'conflict-resolution'],
+      description: 'Real-time synchronization with WebSocket eventsourcing, actor state management, and CRDT-like conflict resolution'
+    },
+
     // Quality Assurance
     test: {
       type: 'test-suite',
@@ -71,6 +79,7 @@
   execution_order: [
     'domain',     // Foundation: Business logic
     'rpc',        // Communication setup
+    'realtime',   // Real-time synchronization
     'actor',      // State management
     'wasm',       // Performance components
     'ui',         // User interface
@@ -83,7 +92,8 @@
   merkle_dag: {
     root: 'domain',
     branches: {
-      business: ['domain', 'rpc'],
+      business: ['domain'],
+      communication: ['rpc', 'realtime'],
       presentation: ['actor', 'ui'],
       performance: ['wasm'],
       tooling: ['build', 'test', 'cli']
@@ -102,16 +112,20 @@
       '@microsoft/fast-element',  // Web Components
       '@types/web',              // Web APIs types
       'vite',                    // Build tool
-      'typescript'
+      'typescript',
+      'ws',                      // WebSocket library for real-time communication
+      'uuid'                     // UUID generation for event IDs
     ],
     actor_db_integration: true,
     wasm_support: true,
+    realtime_support: true,
     cli_commands: [
       'init',
       'generate:domain',
       'generate:actor',
       'generate:ui',
       'generate:wasm',
+      'generate:realtime',
       'build',
       'serve',
       'test'
