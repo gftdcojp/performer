@@ -163,5 +163,26 @@ export function quickStartPerformer(baseURL: string, token?: string, storagePath
  *
  * // Track presence
  * channel.track({ user_id: 'user123', online_at: new Date().toISOString() });
+ *
+ * // Analytics and monitoring
+ * await performer.analytics.recordMetric('api_requests', 150, 'count', { endpoint: '/api/users' });
+ * await performer.analytics.recordPerformanceMetric('database', 'cpu_usage', 65.2, '%', undefined, { server: 'db-01' });
+ *
+ * const { data: usageStats } = await performer.analytics.getUsageStats(
+ *   new Date(Date.now() - 86400000).toISOString(), // 24 hours ago
+ *   new Date().toISOString()
+ * );
+ *
+ * const { data: health } = await performer.analytics.getSystemHealth();
+ * console.log('System health:', health.status);
+ *
+ * // Create alert rules
+ * await performer.analytics.createAlertRule({
+ *   name: 'High CPU Usage',
+ *   condition: { metric: 'cpu_usage', operator: 'gt', threshold: 80 },
+ *   severity: 'warning',
+ *   enabled: true,
+ *   cooldownPeriod: 5, // 5 minutes
+ * });
  * ```
  */

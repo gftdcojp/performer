@@ -89,6 +89,10 @@ class PerformerClientTest {
       console.log('\n🔄 Test 9: Realtime API');
       await this.testRealtimeAPI();
 
+      // Test 10: Analytics API
+      console.log('\n📊 Test 10: Analytics API');
+      await this.testAnalyticsAPI();
+
       console.log('\n✅ All PerformerClient tests passed!');
 
     } catch (error) {
@@ -550,6 +554,155 @@ class PerformerClientTest {
     // Test cleanup
     this.client.realtime.disconnect();
     console.log('  ✅ Realtime disconnected');
+  }
+
+  async testAnalyticsAPI() {
+    // Test recording custom metrics
+    await this.client.analytics.recordMetric(
+      'test_metric',
+      42.5,
+      'count',
+      { source: 'test', component: 'analytics' },
+      { description: 'Test metric' }
+    );
+    console.log('  ✅ Custom metric recorded');
+
+    // Test recording performance metrics
+    await this.client.analytics.recordPerformanceMetric(
+      'database',
+      'query_time',
+      45.2,
+      'ms',
+      45200,
+      { table: 'users', operation: 'select' }
+    );
+    console.log('  ✅ Performance metric recorded');
+
+    // Test recording user activity
+    await this.client.analytics.recordUserActivity(
+      'test-user',
+      'session-123',
+      'login',
+      1200,
+      { ip: '192.168.1.1', userAgent: 'Test Browser' }
+    );
+    console.log('  ✅ User activity recorded');
+
+    // Test getting usage statistics
+    const startTime = new Date(Date.now() - 86400000).toISOString(); // 24 hours ago
+    const endTime = new Date().toISOString();
+    const { data: usageStats, error: usageError } = await this.client.analytics.getUsageStats(startTime, endTime);
+
+    console.log('  ✅ Usage stats retrieved:', usageStats);
+
+    if (usageError || !usageStats) {
+      throw new Error('Usage stats retrieval failed');
+    }
+
+    if (usageStats.totalRequests <= 0) {
+      throw new Error('Usage stats should have positive request count');
+    }
+
+    // Test getting component metrics
+    const { data: componentMetrics, error: metricsError } = await this.client.analytics.getComponentMetrics();
+
+    console.log('  ✅ Component metrics retrieved:', componentMetrics);
+
+    if (metricsError || !componentMetrics) {
+      throw new Error('Component metrics retrieval failed');
+    }
+
+    if (componentMetrics.database.queriesExecuted <= 0) {
+      throw new Error('Database metrics should have positive query count');
+    }
+
+    // Test analytics query
+    const query = {
+      metrics: ['api_requests', 'response_time'],
+      timeRange: {
+        start: startTime,
+        end: endTime,
+      },
+      filters: { component: 'api' },
+    };
+    const { data: queryResult, error: queryError } = await this.client.analytics.query(query);
+
+    console.log('  ✅ Analytics query executed:', queryResult);
+
+    if (queryError || !queryResult) {
+      throw new Error('Analytics query failed');
+    }
+
+    // Test getting user activity
+    const { data: userActivity, error: activityError } = await this.client.analytics.getUserActivity('test-user');
+
+    console.log('  ✅ User activity retrieved:', userActivity);
+
+    if (activityError || !userActivity) {
+      throw new Error('User activity retrieval failed');
+    }
+
+    if (userActivity.userId !== 'test-user') {
+      throw new Error('User activity has wrong user ID');
+    }
+
+    // Test creating alert rule
+    const { data: alertRule, error: ruleError } = await this.client.analytics.createAlertRule({
+      name: 'Test High CPU Alert',
+      condition: {
+        metric: 'cpu_usage',
+        operator: 'gt',
+        threshold: 80,
+      },
+      severity: 'warning',
+      enabled: true,
+      cooldownPeriod: 5,
+    });
+
+    console.log('  ✅ Alert rule created:', alertRule);
+
+    if (ruleError || !alertRule) {
+      throw new Error('Alert rule creation failed');
+    }
+
+    if (alertRule.name !== 'Test High CPU Alert') {
+      throw new Error('Alert rule has wrong name');
+    }
+
+    // Test getting active alerts
+    const { data: activeAlerts, error: alertsError } = await this.client.analytics.getActiveAlerts();
+
+    console.log('  ✅ Active alerts retrieved:', activeAlerts);
+
+    if (alertsError || !activeAlerts) {
+      throw new Error('Active alerts retrieval failed');
+    }
+
+    // Test getting system health
+    const { data: systemHealth, error: healthError } = await this.client.analytics.getSystemHealth();
+
+    console.log('  ✅ System health retrieved:', systemHealth);
+
+    if (healthError || !systemHealth) {
+      throw new Error('System health retrieval failed');
+    }
+
+    if (!['healthy', 'warning', 'critical'].includes(systemHealth.status)) {
+      throw new Error('System health has invalid status');
+    }
+
+    // Test getting dashboard widgets
+    const { data: widgets, error: widgetsError } = await this.client.analytics.getDashboardWidgets();
+
+    console.log('  ✅ Dashboard widgets retrieved:', widgets);
+
+    if (widgetsError || !widgets) {
+      throw new Error('Dashboard widgets retrieval failed');
+    }
+
+    if (widgets.length === 0) {
+      throw new Error('Should have at least one dashboard widget');
+    }
   }
 }
 

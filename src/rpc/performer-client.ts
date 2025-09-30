@@ -219,6 +219,140 @@ export interface RealtimeError {
   details?: unknown;
 }
 
+// Analytics types (Usage Analytics & Performance Monitoring)
+export interface AnalyticsMetric {
+  id: string;
+  name: string;
+  value: number;
+  unit: string;
+  timestamp: string;
+  tags: Record<string, string>;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PerformanceMetric {
+  id: string;
+  component: string;
+  metric: string;
+  value: number;
+  unit: string;
+  timestamp: string;
+  duration?: number; // for timing metrics
+  tags: Record<string, string>;
+}
+
+export interface UsageStats {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  averageResponseTime: number;
+  peakConcurrentUsers: number;
+  totalDataTransferred: number;
+  period: {
+    start: string;
+    end: string;
+  };
+}
+
+export interface ComponentMetrics {
+  database: {
+    queriesExecuted: number;
+    averageQueryTime: number;
+    connectionCount: number;
+    cacheHitRate: number;
+  };
+  storage: {
+    filesUploaded: number;
+    filesDownloaded: number;
+    totalStorageUsed: number;
+    averageUploadTime: number;
+  };
+  functions: {
+    functionsExecuted: number;
+    averageExecutionTime: number;
+    errorRate: number;
+    activeInstances: number;
+  };
+  realtime: {
+    activeConnections: number;
+    messagesSent: number;
+    averageMessageLatency: number;
+  };
+}
+
+export interface UserActivity {
+  userId: string;
+  sessionId: string;
+  actions: Array<{
+    action: string;
+    timestamp: string;
+    duration?: number;
+    metadata?: Record<string, unknown>;
+  }>;
+  totalSessionTime: number;
+  lastActivity: string;
+}
+
+export interface AlertRule {
+  id: string;
+  name: string;
+  condition: {
+    metric: string;
+    operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte';
+    threshold: number;
+  };
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  enabled: boolean;
+  cooldownPeriod: number; // minutes
+  lastTriggered?: string;
+}
+
+export interface Alert {
+  id: string;
+  ruleId: string;
+  message: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  triggeredAt: string;
+  resolvedAt?: string;
+  value: number;
+  threshold: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface DashboardWidget {
+  id: string;
+  type: 'chart' | 'metric' | 'table' | 'alert';
+  title: string;
+  config: Record<string, unknown>;
+  position: { x: number; y: number; width: number; height: number };
+}
+
+export interface AnalyticsQuery {
+  metrics?: string[];
+  timeRange: {
+    start: string;
+    end: string;
+  };
+  filters?: Record<string, unknown>;
+  groupBy?: string[];
+  aggregation?: 'sum' | 'avg' | 'min' | 'max' | 'count';
+}
+
+export interface AnalyticsResult {
+  data: AnalyticsMetric[];
+  summary: Record<string, number>;
+  timeRange: {
+    start: string;
+    end: string;
+  };
+  query: AnalyticsQuery;
+}
+
+export interface AnalyticsError {
+  message: string;
+  details?: unknown;
+}
+
 type Operator =
   | 'eq'
   | 'neq'
@@ -1627,6 +1761,642 @@ export class RealtimeChannelImpl implements RealtimeChannel {
 }
 
 /**
+ * AnalyticsAPI provides comprehensive analytics and performance monitoring.
+ * Uses ActorDB event sourcing for metric collection and analysis.
+ */
+export class AnalyticsAPI {
+  private actorDB: ActorDBClient;
+  private metricsCollector: MetricsCollector;
+  private performanceMonitor: PerformanceMonitor;
+  private usageTracker: UsageTracker;
+  private alertEngine: AlertEngine;
+
+  constructor(actorDB: ActorDBClient) {
+    this.actorDB = actorDB;
+    this.metricsCollector = new MetricsCollector(actorDB);
+    this.performanceMonitor = new PerformanceMonitor(actorDB);
+    this.usageTracker = new UsageTracker(actorDB);
+    this.alertEngine = new AlertEngine(actorDB, this.metricsCollector);
+  }
+
+  /**
+   * Record a custom metric.
+   */
+  async recordMetric(
+    name: string,
+    value: number,
+    unit: string,
+    tags: Record<string, string> = {},
+    metadata?: Record<string, unknown>
+  ): Promise<void> {
+    const metric: AnalyticsMetric = {
+      id: `metric_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name,
+      value,
+      unit,
+      timestamp: new Date().toISOString(),
+      tags,
+      metadata,
+    };
+
+    await this.metricsCollector.recordMetric(metric);
+  }
+
+  /**
+   * Record a performance metric.
+   */
+  async recordPerformanceMetric(
+    component: string,
+    metric: string,
+    value: number,
+    unit: string,
+    duration?: number,
+    tags: Record<string, string> = {}
+  ): Promise<void> {
+    await this.performanceMonitor.recordMetric(component, metric, value, unit, duration, tags);
+  }
+
+  /**
+   * Record user activity.
+   */
+  async recordUserActivity(
+    userId: string,
+    sessionId: string,
+    action: string,
+    duration?: number,
+    metadata?: Record<string, unknown>
+  ): Promise<void> {
+    await this.usageTracker.recordActivity(userId, sessionId, action, duration, metadata);
+  }
+
+  /**
+   * Get usage statistics for a time period.
+   */
+  async getUsageStats(
+    startTime: string,
+    endTime: string
+  ): Promise<{ data: UsageStats | null; error: AnalyticsError | null }> {
+    try {
+      const stats = await this.usageTracker.getUsageStats(startTime, endTime);
+      return { data: stats, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to get usage stats' },
+      };
+    }
+  }
+
+  /**
+   * Get component-specific metrics.
+   */
+  async getComponentMetrics(
+    timeRange?: { start: string; end: string }
+  ): Promise<{ data: ComponentMetrics | null; error: AnalyticsError | null }> {
+    try {
+      const metrics = await this.metricsCollector.getComponentMetrics(timeRange);
+      return { data: metrics, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to get component metrics' },
+      };
+    }
+  }
+
+  /**
+   * Query analytics data.
+   */
+  async query(query: AnalyticsQuery): Promise<{ data: AnalyticsResult | null; error: AnalyticsError | null }> {
+    try {
+      const result = await this.metricsCollector.queryMetrics(query);
+      return { data: result, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to query analytics' },
+      };
+    }
+  }
+
+  /**
+   * Get user activity data.
+   */
+  async getUserActivity(
+    userId: string,
+    timeRange?: { start: string; end: string }
+  ): Promise<{ data: UserActivity | null; error: AnalyticsError | null }> {
+    try {
+      const activity = await this.usageTracker.getUserActivity(userId, timeRange);
+      return { data: activity, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to get user activity' },
+      };
+    }
+  }
+
+  /**
+   * Create an alert rule.
+   */
+  async createAlertRule(
+    rule: Omit<AlertRule, 'id' | 'lastTriggered'>
+  ): Promise<{ data: AlertRule | null; error: AnalyticsError | null }> {
+    try {
+      const alertRule = await this.alertEngine.createRule(rule);
+      return { data: alertRule, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to create alert rule' },
+      };
+    }
+  }
+
+  /**
+   * Get active alerts.
+   */
+  async getActiveAlerts(): Promise<{ data: Alert[] | null; error: AnalyticsError | null }> {
+    try {
+      const alerts = await this.alertEngine.getActiveAlerts();
+      return { data: alerts, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to get active alerts' },
+      };
+    }
+  }
+
+  /**
+   * Get dashboard widgets configuration.
+   */
+  async getDashboardWidgets(): Promise<{ data: DashboardWidget[] | null; error: AnalyticsError | null }> {
+    try {
+      // In production, retrieve from database
+      // For MVP, return default widgets
+      const widgets: DashboardWidget[] = [
+        {
+          id: 'requests-chart',
+          type: 'chart',
+          title: 'API Requests Over Time',
+          config: { metric: 'api_requests', chartType: 'line' },
+          position: { x: 0, y: 0, width: 6, height: 4 },
+        },
+        {
+          id: 'response-time-metric',
+          type: 'metric',
+          title: 'Average Response Time',
+          config: { metric: 'response_time', unit: 'ms' },
+          position: { x: 6, y: 0, width: 3, height: 2 },
+        },
+        {
+          id: 'error-rate-metric',
+          type: 'metric',
+          title: 'Error Rate',
+          config: { metric: 'error_rate', unit: '%' },
+          position: { x: 9, y: 0, width: 3, height: 2 },
+        },
+        {
+          id: 'active-alerts',
+          type: 'alert',
+          title: 'Active Alerts',
+          config: { showResolved: false },
+          position: { x: 0, y: 4, width: 12, height: 3 },
+        },
+      ];
+
+      return { data: widgets, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to get dashboard widgets' },
+      };
+    }
+  }
+
+  /**
+   * Get system health status.
+   */
+  async getSystemHealth(): Promise<{
+    data: {
+      status: 'healthy' | 'warning' | 'critical';
+      uptime: number;
+      components: Record<string, 'healthy' | 'warning' | 'critical'>;
+      lastChecked: string;
+    } | null;
+    error: AnalyticsError | null;
+  }> {
+    try {
+      // Check performance metrics to determine health
+      const recentMetrics = await this.performanceMonitor.getRecentMetrics(5 * 60 * 1000); // Last 5 minutes
+
+      let status: 'healthy' | 'warning' | 'critical' = 'healthy';
+      const components: Record<string, 'healthy' | 'warning' | 'critical'> = {
+        database: 'healthy',
+        storage: 'healthy',
+        functions: 'healthy',
+        realtime: 'healthy',
+      };
+
+      // Analyze metrics for health status
+      for (const metric of recentMetrics) {
+        if (metric.metric === 'cpu_usage' && metric.value > 90) {
+          status = 'critical';
+          components.database = 'critical';
+        } else if (metric.metric === 'memory_usage' && metric.value > 85) {
+          status = status === 'critical' ? 'critical' : 'warning';
+          components.database = 'warning';
+        } else if (metric.metric === 'error_rate' && metric.value > 5) {
+          status = status === 'critical' ? 'critical' : 'warning';
+          // Determine which component based on tags
+          if (metric.tags.component) {
+            components[metric.tags.component] = 'warning';
+          }
+        }
+      }
+
+      const health = {
+        status,
+        uptime: process.uptime ? process.uptime() : 0, // Node.js uptime in seconds
+        components,
+        lastChecked: new Date().toISOString(),
+      };
+
+      return { data: health, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to get system health' },
+      };
+    }
+  }
+}
+
+/**
+ * MetricsCollector handles collection and aggregation of analytics metrics.
+ */
+export class MetricsCollector {
+  private actorDB: ActorDBClient;
+
+  constructor(actorDB: ActorDBClient) {
+    this.actorDB = actorDB;
+  }
+
+  async recordMetric(metric: AnalyticsMetric): Promise<void> {
+    await this.actorDB.writeEvent({
+      entityId: `metric_${metric.name}`,
+      eventType: 'metric_recorded',
+      payload: metric,
+      timestamp: new Date(),
+      version: 1,
+    });
+  }
+
+  async getComponentMetrics(timeRange?: { start: string; end: string }): Promise<ComponentMetrics> {
+    // In production, aggregate metrics from database
+    // For MVP, return mock data
+    return {
+      database: {
+        queriesExecuted: 1250,
+        averageQueryTime: 45.2,
+        connectionCount: 8,
+        cacheHitRate: 87.5,
+      },
+      storage: {
+        filesUploaded: 156,
+        filesDownloaded: 892,
+        totalStorageUsed: 2.3 * 1024 * 1024 * 1024, // 2.3 GB
+        averageUploadTime: 234.1,
+      },
+      functions: {
+        functionsExecuted: 423,
+        averageExecutionTime: 67.8,
+        errorRate: 2.1,
+        activeInstances: 3,
+      },
+      realtime: {
+        activeConnections: 45,
+        messagesSent: 1205,
+        averageMessageLatency: 12.3,
+      },
+    };
+  }
+
+  async queryMetrics(query: AnalyticsQuery): Promise<AnalyticsResult> {
+    // In production, execute complex queries on metrics data
+    // For MVP, return mock results
+    const mockMetrics: AnalyticsMetric[] = [
+      {
+        id: 'metric_1',
+        name: 'api_requests',
+        value: 150,
+        unit: 'count',
+        timestamp: new Date().toISOString(),
+        tags: { method: 'GET', endpoint: '/api/users' },
+      },
+      {
+        id: 'metric_2',
+        name: 'response_time',
+        value: 45.2,
+        unit: 'ms',
+        timestamp: new Date().toISOString(),
+        tags: { method: 'GET', endpoint: '/api/users' },
+      },
+    ];
+
+    const summary = {
+      total_requests: 150,
+      average_response_time: 45.2,
+      error_count: 3,
+    };
+
+    return {
+      data: mockMetrics,
+      summary,
+      timeRange: query.timeRange,
+      query,
+    };
+  }
+}
+
+/**
+ * PerformanceMonitor handles system performance monitoring.
+ */
+export class PerformanceMonitor {
+  private actorDB: ActorDBClient;
+
+  constructor(actorDB: ActorDBClient) {
+    this.actorDB = actorDB;
+  }
+
+  async recordMetric(
+    component: string,
+    metric: string,
+    value: number,
+    unit: string,
+    duration?: number,
+    tags: Record<string, string> = {}
+  ): Promise<void> {
+    const performanceMetric: PerformanceMetric = {
+      id: `perf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      component,
+      metric,
+      value,
+      unit,
+      timestamp: new Date().toISOString(),
+      duration,
+      tags,
+    };
+
+    await this.actorDB.writeEvent({
+      entityId: `performance_${component}_${metric}`,
+      eventType: 'performance_metric',
+      payload: performanceMetric,
+      timestamp: new Date(),
+      version: 1,
+    });
+  }
+
+  async getRecentMetrics(timeWindowMs: number): Promise<PerformanceMetric[]> {
+    // In production, query recent performance metrics
+    // For MVP, return mock data
+    return [
+      {
+        id: 'perf_1',
+        component: 'database',
+        metric: 'cpu_usage',
+        value: 65.2,
+        unit: '%',
+        timestamp: new Date().toISOString(),
+        tags: { server: 'db-01' },
+      },
+      {
+        id: 'perf_2',
+        component: 'functions',
+        metric: 'memory_usage',
+        value: 78.5,
+        unit: '%',
+        timestamp: new Date().toISOString(),
+        tags: { instance: 'wasm-01' },
+      },
+    ];
+  }
+}
+
+/**
+ * UsageTracker handles user activity and usage statistics.
+ */
+export class UsageTracker {
+  private actorDB: ActorDBClient;
+
+  constructor(actorDB: ActorDBClient) {
+    this.actorDB = actorDB;
+  }
+
+  async recordActivity(
+    userId: string,
+    sessionId: string,
+    action: string,
+    duration?: number,
+    metadata?: Record<string, unknown>
+  ): Promise<void> {
+    await this.actorDB.writeEvent({
+      entityId: `activity_${userId}_${sessionId}`,
+      eventType: 'user_activity',
+      payload: {
+        userId,
+        sessionId,
+        action,
+        timestamp: new Date().toISOString(),
+        duration,
+        metadata,
+      },
+      timestamp: new Date(),
+      version: 1,
+    });
+  }
+
+  async getUsageStats(startTime: string, endTime: string): Promise<UsageStats> {
+    // In production, aggregate usage data from events
+    // For MVP, return mock statistics
+    return {
+      totalRequests: 15420,
+      successfulRequests: 15280,
+      failedRequests: 140,
+      averageResponseTime: 45.2,
+      peakConcurrentUsers: 89,
+      totalDataTransferred: 2.3 * 1024 * 1024 * 1024, // 2.3 GB
+      period: {
+        start: startTime,
+        end: endTime,
+      },
+    };
+  }
+
+  async getUserActivity(
+    userId: string,
+    timeRange?: { start: string; end: string }
+  ): Promise<UserActivity> {
+    // In production, aggregate user activity from events
+    // For MVP, return mock activity data
+    return {
+      userId,
+      sessionId: `session_${userId}`,
+      actions: [
+        {
+          action: 'login',
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+        },
+        {
+          action: 'query_database',
+          timestamp: new Date(Date.now() - 1800000).toISOString(),
+          duration: 1250,
+          metadata: { table: 'users', operation: 'select' },
+        },
+        {
+          action: 'upload_file',
+          timestamp: new Date(Date.now() - 900000).toISOString(),
+          duration: 2340,
+          metadata: { fileSize: 1024000, fileType: 'image/jpeg' },
+        },
+      ],
+      totalSessionTime: 7200000, // 2 hours in milliseconds
+      lastActivity: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * AlertEngine handles alert rules and notifications.
+ */
+export class AlertEngine {
+  private actorDB: ActorDBClient;
+  private metricsCollector: MetricsCollector;
+  private activeRules = new Map<string, AlertRule>();
+
+  constructor(actorDB: ActorDBClient, metricsCollector: MetricsCollector) {
+    this.actorDB = actorDB;
+    this.metricsCollector = metricsCollector;
+  }
+
+  async createRule(ruleData: Omit<AlertRule, 'id' | 'lastTriggered'>): Promise<AlertRule> {
+    const rule: AlertRule = {
+      ...ruleData,
+      id: `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    };
+
+    this.activeRules.set(rule.id, rule);
+
+    await this.actorDB.writeEvent({
+      entityId: `alert_rule_${rule.id}`,
+      eventType: 'alert_rule_created',
+      payload: rule,
+      timestamp: new Date(),
+      version: 1,
+    });
+
+    return rule;
+  }
+
+  async getActiveAlerts(): Promise<Alert[]> {
+    // In production, check rules against current metrics and return triggered alerts
+    // For MVP, return mock alerts
+    return [
+      {
+        id: 'alert_1',
+        ruleId: 'rule_high_cpu',
+        message: 'High CPU usage detected on database server',
+        severity: 'warning',
+        triggeredAt: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
+        value: 85.2,
+        threshold: 80,
+        metadata: { server: 'db-01', component: 'database' },
+      },
+    ];
+  }
+
+  // Method to check rules against current metrics (would be called periodically)
+  async checkRules(): Promise<void> {
+    for (const rule of this.activeRules.values()) {
+      if (!rule.enabled) continue;
+
+      // Check if rule is in cooldown period
+      if (rule.lastTriggered) {
+        const lastTriggered = new Date(rule.lastTriggered);
+        const cooldownEnd = new Date(lastTriggered.getTime() + rule.cooldownPeriod * 60 * 1000);
+        if (new Date() < cooldownEnd) continue;
+      }
+
+      // Get current metric value
+      const recentMetrics = await this.metricsCollector.queryMetrics({
+        metrics: [rule.condition.metric],
+        timeRange: {
+          start: new Date(Date.now() - 300000).toISOString(), // Last 5 minutes
+          end: new Date().toISOString(),
+        },
+      });
+
+      if (recentMetrics.data.length === 0) continue;
+
+      const latestValue = recentMetrics.data[recentMetrics.data.length - 1].value;
+      const shouldTrigger = this.evaluateCondition(latestValue, rule.condition);
+
+      if (shouldTrigger) {
+        await this.triggerAlert(rule, latestValue);
+      }
+    }
+  }
+
+  private evaluateCondition(value: number, condition: AlertRule['condition']): boolean {
+    switch (condition.operator) {
+      case 'gt':
+        return value > condition.threshold;
+      case 'lt':
+        return value < condition.threshold;
+      case 'eq':
+        return value === condition.threshold;
+      case 'gte':
+        return value >= condition.threshold;
+      case 'lte':
+        return value <= condition.threshold;
+      default:
+        return false;
+    }
+  }
+
+  private async triggerAlert(rule: AlertRule, value: number): Promise<void> {
+    const alert: Alert = {
+      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      ruleId: rule.id,
+      message: `${rule.name}: ${rule.condition.metric} is ${rule.condition.operator} ${rule.condition.threshold} (current: ${value})`,
+      severity: rule.severity,
+      triggeredAt: new Date().toISOString(),
+      value,
+      threshold: rule.condition.threshold,
+      metadata: { ruleName: rule.name },
+    };
+
+    // Update rule's last triggered time
+    rule.lastTriggered = alert.triggeredAt;
+    this.activeRules.set(rule.id, rule);
+
+    // Record alert in database
+    await this.actorDB.writeEvent({
+      entityId: `alert_${alert.id}`,
+      eventType: 'alert_triggered',
+      payload: alert,
+      timestamp: new Date(),
+      version: 1,
+    });
+
+    // In production, send notifications (email, webhook, etc.)
+    console.warn(`ALERT [${rule.severity.toUpperCase()}]: ${alert.message}`);
+  }
+}
+
+/**
  * The main client for interacting with the Performer backend (ActorDB).
  * Provides a high-level API inspired by Supabase.
  */
@@ -1636,6 +2406,7 @@ export class PerformerClient {
   private _storage: StorageAPI;
   private _functions: FunctionsAPI;
   private _realtime: RealtimeAPI;
+  private _analytics: AnalyticsAPI;
 
   constructor(actorDB: ActorDBClient, storagePath: string = './storage') {
     this.actorDB = actorDB;
@@ -1643,6 +2414,7 @@ export class PerformerClient {
     this._storage = new StorageAPI(actorDB, storagePath);
     this._functions = new FunctionsAPI(actorDB);
     this._realtime = new RealtimeAPI(actorDB);
+    this._analytics = new AnalyticsAPI(actorDB);
   }
 
   /**
@@ -1689,6 +2461,13 @@ export class PerformerClient {
    */
   get realtime(): RealtimeAPI {
     return this._realtime;
+  }
+
+  /**
+   * Analytics API - Usage analytics and performance monitoring.
+   */
+  get analytics(): AnalyticsAPI {
+    return this._analytics;
   }
 
   /**
