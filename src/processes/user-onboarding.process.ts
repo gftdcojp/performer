@@ -8,6 +8,7 @@ export const processMetadata = {
   name: 'User Onboarding Process',
   type: 'single' as const, // 'single' | 'saga'
   version: '1.0.0',
+  hash: 'a1b2c3d4', // Process hash for versioning and caching
   description: 'Simple user onboarding with username validation',
   author: 'Performer Framework',
   created: '2025-01-30',

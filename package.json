@@ -9,6 +9,7 @@
     "test": "vitest",
     "test:actordb": "npx tsx test/run-actordb-tests.ts",
     "test:saga": "npx tsx test/saga-integration-test.ts",
+    "test:dynamic": "npx tsx test/dynamic-process-loading-test.ts",
     "simulator": "npx tsx test/actordb-simulator.ts"
   },
   "dependencies": {
