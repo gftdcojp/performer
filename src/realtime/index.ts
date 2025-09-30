@@ -34,7 +34,9 @@ export {
 // Core services
 export {
   RealtimeServiceImpl,
-  createRealtimeService
+  createRealtimeService,
+  createRealtimeServiceWS,
+  createRealtimeServiceSSE
 } from './realtime-service'
 
 // Event store
@@ -70,6 +72,16 @@ export {
   incrementVectorClock,
   mergeVectorClocks
 } from './conflict-resolver'
+
+// SSE (Server-Sent Events)
+export {
+  SSEManager,
+  SSEServer,
+  SSETransport,
+  createSSEManager,
+  createSSEServer,
+  createSSETransport
+} from './sse-manager'
 
 // Convenience functions
 import { createRealtimeService } from './realtime-service'

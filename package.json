@@ -12,7 +12,8 @@
     "test:dynamic": "npx tsx test/dynamic-process-loading-test.ts",
     "simulator": "npx tsx test/actordb-simulator.ts",
     "demo:chat": "npx tsx demo/realtime-chat/server.ts",
-    "demo:chat:client": "open demo/realtime-chat/index.html"
+    "demo:chat:ws": "open demo/realtime-chat/ws.html",
+    "demo:chat:sse": "open demo/realtime-chat/sse.html"
   },
   "dependencies": {
     "@effect-ts/core": "^0.60.0",

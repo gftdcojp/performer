@@ -17,14 +17,16 @@ import {
 } from "./types"
 import { RealtimeEventStore, CRDTStateManager } from "./event-store"
 import { WebSocketManager } from "./websocket-manager"
+import { SSETransport, SSEServer } from "./sse-manager"
 
-// Real-time Service Implementation
+// Real-time Service Implementation with WebSocket and SSE support
 export class RealtimeServiceImpl implements RealtimeService {
   // Merkle DAG: realtime-service-impl
 
   private eventStore: RealtimeEventStore
   private crdtManager: CRDTStateManager
-  private wsManager: WebSocketManager
+  private wsManager: WebSocketManager | null = null
+  private sseTransport: SSETransport | null = null
   private subscriptions = new Map<string, ChannelSubscription>()
   private metrics: SyncMetrics = {
     eventsProcessed: 0,
@@ -37,21 +39,35 @@ export class RealtimeServiceImpl implements RealtimeService {
 
   constructor(
     actorDBClient: any,
-    wsUrl: string,
     options: {
       snapshotInterval?: number
       wsOptions?: any
+      wsUrl?: string
+      sseServer?: SSEServer
+      transport?: 'websocket' | 'sse' | 'both' // Default to both for maximum compatibility
     } = {}
   ) {
     this.eventStore = new RealtimeEventStore(actorDBClient, options.snapshotInterval)
     this.crdtManager = new CRDTStateManager(this.eventStore)
-    this.wsManager = new WebSocketManager(wsUrl, options.wsOptions)
 
-    // Set up WebSocket message handlers
-    this.setupWebSocketHandlers()
+    // Initialize transports based on options
+    const transport = options.transport || 'both'
+
+    if (transport === 'websocket' || transport === 'both') {
+      if (options.wsUrl) {
+        this.wsManager = new WebSocketManager(options.wsUrl, options.wsOptions)
+        this.setupWebSocketHandlers()
+      }
+    }
+
+    if (transport === 'sse' || transport === 'both') {
+      if (options.sseServer) {
+        this.sseTransport = new SSETransport(options.sseServer)
+      }
+    }
   }
 
-  // Broadcast event to all subscribers
+  // Broadcast event to all subscribers (WebSocket and/or SSE)
   broadcastEvent(event: RealtimeEvent): Effect.Effect<void, RealtimeError> {
     return Effect.gen(function* () {
       try {
@@ -65,11 +81,37 @@ export class RealtimeServiceImpl implements RealtimeService {
           checksum: yield* this.calculateChecksum(event)
         }
 
-        // Send via WebSocket
-        yield* this.wsManager.send({
-          type: 'event',
-          payload: envelope
-        })
+        const broadcastPromises: Effect.Effect<void, RealtimeError>[] = []
+
+        // Send via WebSocket if available
+        if (this.wsManager) {
+          broadcastPromises.push(
+            this.wsManager.send({
+              type: 'event',
+              payload: envelope
+            })
+          )
+        }
+
+        // Send via SSE if available
+        if (this.sseTransport) {
+          broadcastPromises.push(
+            this.sseTransport.broadcast({
+              type: 'event',
+              payload: envelope
+            }, event.actorId)
+          )
+        }
+
+        // Execute all broadcasts (continue even if some fail)
+        if (broadcastPromises.length > 0) {
+          yield* Effect.all(broadcastPromises, {
+            concurrency: 'unbounded',
+            discard: true
+          }).pipe(
+            Effect.catchAll(() => Effect.succeed(undefined)) // Ignore individual transport failures
+          )
+        }
 
         // Update metrics
         this.metrics.eventsProcessed++
@@ -121,11 +163,35 @@ export class RealtimeServiceImpl implements RealtimeService {
         // Create snapshot from events
         const newSnapshot = yield* this.eventStore.createSnapshotInternal(actorId, events[events.length - 1].version)
 
-        // Send sync response via WebSocket
-        yield* this.wsManager.send({
-          type: 'sync_response',
-          payload: { events, snapshot: newSnapshot }
-        })
+        // Send sync response via available transports
+        const syncPromises: Effect.Effect<void, RealtimeError>[] = []
+
+        if (this.wsManager) {
+          syncPromises.push(
+            this.wsManager.send({
+              type: 'sync_response',
+              payload: { events, snapshot: newSnapshot }
+            })
+          )
+        }
+
+        if (this.sseTransport) {
+          syncPromises.push(
+            this.sseTransport.broadcast({
+              type: 'sync_response',
+              payload: { events, snapshot: newSnapshot }
+            }, actorId)
+          )
+        }
+
+        if (syncPromises.length > 0) {
+          yield* Effect.all(syncPromises, {
+            concurrency: 'unbounded',
+            discard: true
+          }).pipe(
+            Effect.catchAll(() => Effect.succeed(undefined))
+          )
+        }
 
         this.updateSyncMetrics(Date.now() - startTime)
         return newSnapshot
@@ -274,12 +340,59 @@ export class RealtimeServiceImpl implements RealtimeService {
 
   // Connect to real-time service
   connect(): Effect.Effect<void, RealtimeError> {
-    return this.wsManager.connect()
+    return Effect.gen(function* () {
+      const connectPromises: Effect.Effect<void, RealtimeError>[] = []
+
+      if (this.wsManager) {
+        connectPromises.push(this.wsManager.connect())
+      }
+
+      // SSE doesn't need explicit connection (server handles it)
+
+      if (connectPromises.length > 0) {
+        yield* Effect.all(connectPromises, {
+          concurrency: 'unbounded',
+          discard: true
+        })
+      }
+    }).pipe(
+      Effect.provideService(Effect.context(), this)
+    )
   }
 
   // Disconnect from real-time service
   disconnect(): Effect.Effect<void, RealtimeError> {
-    return this.wsManager.disconnect()
+    return Effect.gen(function* () {
+      const disconnectPromises: Effect.Effect<void, RealtimeError>[] = []
+
+      if (this.wsManager) {
+        disconnectPromises.push(this.wsManager.disconnect())
+      }
+
+      // SSE server shutdown would be handled separately
+
+      if (disconnectPromises.length > 0) {
+        yield* Effect.all(disconnectPromises, {
+          concurrency: 'unbounded',
+          discard: true
+        })
+      }
+    }).pipe(
+      Effect.provideService(Effect.context(), this)
+    )
+  }
+
+  // Get transport information
+  getTransportInfo(): {
+    websocket: boolean
+    sse: boolean
+    sseConnections?: number
+  } {
+    return {
+      websocket: this.wsManager !== null,
+      sse: this.sseTransport !== null,
+      sseConnections: this.sseTransport?.getConnectionInfo().count
+    }
   }
 
   // Private helper methods
@@ -377,8 +490,31 @@ export class RealtimeServiceImpl implements RealtimeService {
   }
 }
 
-// Factory function for creating real-time service
+// Factory function for creating real-time service with WebSocket and/or SSE support
 export function createRealtimeService(
+  actorDBClient: any,
+  options: {
+    snapshotInterval?: number
+    wsOptions?: any
+    wsUrl?: string
+    sseServer?: SSEServer
+    transport?: 'websocket' | 'sse' | 'both'
+    autoConnect?: boolean
+  } = {}
+): Effect.Effect<RealtimeService, RealtimeError> {
+  return Effect.gen(function* () {
+    const service = new RealtimeServiceImpl(actorDBClient, options)
+
+    if (options.autoConnect !== false) {
+      yield* service.connect()
+    }
+
+    return service
+  })
+}
+
+// Factory function for backward compatibility (WebSocket only)
+export function createRealtimeServiceWS(
   actorDBClient: any,
   wsUrl: string,
   options: {
@@ -386,9 +522,24 @@ export function createRealtimeService(
     wsOptions?: any
   } = {}
 ): Effect.Effect<RealtimeService, RealtimeError> {
-  return Effect.gen(function* () {
-    const service = new RealtimeServiceImpl(actorDBClient, wsUrl, options)
-    yield* service.connect()
-    return service
+  return createRealtimeService(actorDBClient, {
+    ...options,
+    wsUrl,
+    transport: 'websocket'
+  })
+}
+
+// Factory function for SSE only
+export function createRealtimeServiceSSE(
+  actorDBClient: any,
+  sseServer: SSEServer,
+  options: {
+    snapshotInterval?: number
+  } = {}
+): Effect.Effect<RealtimeService, RealtimeError> {
+  return createRealtimeService(actorDBClient, {
+    ...options,
+    sseServer,
+    transport: 'sse'
   })
 }

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performer Chat - SSE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+
+        .chat-header p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .transport-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-left: 8px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            background: #059669;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.other {
+            background: #e2e8f0;
+            color: #374151;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.system {
+            background: #fef3c7;
+            color: #92400e;
+            margin: 8px auto;
+            max-width: 90%;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .message-timestamp {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: #059669;
+        }
+
+        .chat-input button {
+            padding: 12px 24px;
+            background: #059669;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chat-input button:hover {
+            background: #047857;
+        }
+
+        .status {
+            padding: 8px 20px;
+            background: #ecfdf5;
+            color: #065f46;
+            text-align: center;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #d1fae5;
+        }
+
+        .status.connecting {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status.disconnected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .user-info {
+            padding: 12px 20px;
+            background: #f3f4f6;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #059669;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Performer Chat <span class="transport-badge">SSE</span></h1>
+            <p>Server-Sent Events Real-time Chat</p>
+        </div>
+
+        <div class="status" id="status">Connecting to SSE...</div>
+
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">U</div>
+            <div>
+                <div style="font-weight: 500;" id="userName">Connecting...</div>
+                <div style="font-size: 0.8rem; color: #6b7280;" id="userStatus">Initializing SSE</div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="messages">
+            <div class="message system">
+                Welcome to Performer SSE chat!
+                <div class="message-timestamp">Just now</div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Type a message..." />
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // SSE Chat Client
+        class SSEChatClient {
+            constructor() {
+                this.eventSource = null;
+                this.userId = 'sse-user-' + Math.random().toString(36).substr(2, 9);
+                this.roomId = 'chat-room-1';
+                this.isConnected = false;
+
+                this.initUI();
+                this.connect();
+            }
+
+            initUI() {
+                this.statusEl = document.getElementById('status');
+                this.userAvatarEl = document.getElementById('userAvatar');
+                this.userNameEl = document.getElementById('userName');
+                this.userStatusEl = document.getElementById('userStatus');
+                this.messagesEl = document.getElementById('messages');
+                this.messageInputEl = document.getElementById('messageInput');
+                this.sendButtonEl = document.getElementById('sendButton');
+
+                // Set user info
+                this.userAvatarEl.textContent = this.userId.charAt(0).toUpperCase();
+                this.userNameEl.textContent = this.userId;
+
+                // Event listeners
+                this.sendButtonEl.addEventListener('click', () => this.sendMessage());
+                this.messageInputEl.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+            }
+
+            connect() {
+                this.updateStatus('connecting', 'Connecting to SSE server...');
+
+                try {
+                    // Connect to SSE endpoint
+                    this.eventSource = new EventSource('http://localhost:3000/sse');
+
+                    this.eventSource.onopen = () => {
+                        this.isConnected = true;
+                        this.updateStatus('connected', 'Connected to SSE chat room');
+                        this.userStatusEl.textContent = 'Online (SSE)';
+                        console.log('SSE connection opened');
+                    };
+
+                    // Handle connection event
+                    this.eventSource.addEventListener('connection', (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            console.log('SSE connection established:', data);
+                        } catch (error) {
+                            console.error('Failed to parse connection event:', error);
+                        }
+                    });
+
+                    // Handle events
+                    this.eventSource.addEventListener('event', (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            this.handleEvent(data);
+                        } catch (error) {
+                            console.error('Failed to parse event:', error);
+                        }
+                    });
+
+                    // Handle sync responses
+                    this.eventSource.addEventListener('sync_response', (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            this.handleSyncResponse(data);
+                        } catch (error) {
+                            console.error('Failed to parse sync_response:', error);
+                        }
+                    });
+
+                    // Handle heartbeat
+                    this.eventSource.addEventListener('heartbeat', (event) => {
+                        console.log('SSE heartbeat received');
+                    });
+
+                    this.eventSource.onerror = (error) => {
+                        console.error('SSE error:', error);
+                        this.isConnected = false;
+                        this.updateStatus('disconnected', 'SSE connection error');
+                        this.userStatusEl.textContent = 'Offline';
+
+                        // Attempt to reconnect after 3 seconds
+                        setTimeout(() => this.connect(), 3000);
+                    };
+
+                } catch (error) {
+                    console.error('Failed to connect SSE:', error);
+                    this.updateStatus('disconnected', 'Failed to connect SSE');
+                }
+            }
+
+            sendMessage() {
+                const content = this.messageInputEl.value.trim();
+                if (!content) return;
+
+                // For demo purposes, we'll simulate sending by making an HTTP request
+                // In a real app, you'd have an HTTP API endpoint for sending messages
+                fetch('http://localhost:3000/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: this.userId,
+                        content: content,
+                        roomId: this.roomId
+                    })
+                }).catch(error => {
+                    console.error('Failed to send message:', error);
+                    // Add message locally for demo
+                    this.addMessage({
+                        type: 'user',
+                        userId: this.userId,
+                        content: content + ' (sent via HTTP)',
+                        timestamp: new Date()
+                    }, true);
+                });
+
+                // Clear input
+                this.messageInputEl.value = '';
+
+                // Add message to UI immediately (optimistic update)
+                this.addMessage({
+                    type: 'user',
+                    userId: this.userId,
+                    content: content,
+                    timestamp: new Date()
+                }, true);
+            }
+
+            handleEvent(data) {
+                console.log('Received SSE event:', data);
+
+                if (data.type === 'message_sent') {
+                    this.addMessage({
+                        type: 'user',
+                        userId: data.payload.userId,
+                        content: data.payload.content,
+                        timestamp: new Date(data.timestamp || Date.now())
+                    }, false);
+                } else if (data.type === 'user_joined' || data.type === 'user_left') {
+                    this.addMessage({
+                        type: 'system',
+                        content: data.payload.userId + (data.type === 'user_joined' ? ' joined' : ' left') + ' the room (via SSE)',
+                        timestamp: new Date(data.timestamp || Date.now())
+                    }, false);
+                }
+            }
+
+            handleSyncResponse(response) {
+                // Handle initial sync response
+                console.log('SSE sync response:', response);
+
+                if (response.snapshot && response.snapshot.state) {
+                    const state = response.snapshot.state;
+
+                    // Add existing messages
+                    if (state.messages) {
+                        state.messages.forEach(msg => {
+                            this.addMessage(msg, false);
+                        });
+                    }
+                }
+            }
+
+            addMessage(message, isOwn = false) {
+                const messageEl = document.createElement('div');
+                messageEl.className = `message ${message.type === 'system' ? 'system' : (isOwn ? 'user' : 'other')}`;
+
+                let content = '';
+                if (message.type === 'user') {
+                    content = `<strong>${message.userId}:</strong> ${message.content}`;
+                } else {
+                    content = message.content;
+                }
+
+                messageEl.innerHTML = content;
+
+                const timestampEl = document.createElement('div');
+                timestampEl.className = 'message-timestamp';
+                timestampEl.textContent = this.formatTime(message.timestamp);
+
+                messageEl.appendChild(timestampEl);
+                this.messagesEl.appendChild(messageEl);
+
+                // Scroll to bottom
+                this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+            }
+
+            updateStatus(status, text) {
+                this.statusEl.textContent = text;
+                this.statusEl.className = `status ${status}`;
+            }
+
+            formatTime(date) {
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+        }
+
+        // Initialize SSE chat client when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SSEChatClient();
+        });
+    </script>
+</body>
+</html>

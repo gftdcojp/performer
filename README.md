@@ -40,7 +40,9 @@ Performerは **Rivet に匹敵する強力なリアルタイム同期機能** �
 
 ### 特徴
 
-- **アクター + WebSocket イベント** - Rivet と同じ思想で設計された同期パターン
+- **アクター + WebSocket/SSE イベント** - Rivet と同じ思想で設計された同期パターン
+- **デュアルトランスポート** - WebSocket + SSE を状況に応じて使い分け
+- **ファイアウォールフレンドリー** - SSE は HTTP/HTTPS のみを使用
 - **ローカルファースト同期** - クライアントサイドでの即時反映 + サーバ同期
 - **CRDT ベース衝突解決** - 複数ユーザー間の競合を自動解決
 - **スナップショット最適化** - O(n) → O(k)+O(Δ) の計算量削減
@@ -51,8 +53,25 @@ Performerは **Rivet に匹敵する強力なリアルタイム同期機能** �
 ```typescript
 import { createRealtimeService, setRealtimeService } from 'performer'
 
-// リアルタイムサービスを作成
-const realtimeService = await createRealtimeService(actorDBClient, 'ws://localhost:8080')
+// WebSocket + SSE 両方を使用（デフォルト）
+const realtimeService = await createRealtimeService(actorDBClient, {
+  wsUrl: 'ws://localhost:8080',
+  sseServer: sseServer, // SSEサーバーインスタンス
+  transport: 'both' // 'websocket' | 'sse' | 'both'
+})
+
+// または個別に使用
+// WebSocketのみ
+const wsService = await createRealtimeService(actorDBClient, {
+  wsUrl: 'ws://localhost:8080',
+  transport: 'websocket'
+})
+
+// SSEのみ
+const sseService = await createRealtimeService(actorDBClient, {
+  sseServer: sseServer,
+  transport: 'sse'
+})
 
 // アクターシステムにリアルタイムサービスを設定
 setRealtimeService(realtimeService)
@@ -64,7 +83,7 @@ const subscriptionId = await realtimeService.subscribeChannel({
   filters: { eventTypes: ['message_sent', 'user_joined'] }
 })
 
-// イベントブロードキャスト
+// イベントブロードキャスト（両方のトランスポートに送信）
 await realtimeService.broadcastEvent({
   id: 'msg-123',
   type: 'message_sent',
@@ -99,14 +118,30 @@ const mergedState = await crdtService.mergeCRDTStates(states, customMergeFunctio
 ### デモ実行
 
 ```bash
-# リアルタイムチャットデモを開始
+# リアルタイムチャットデモを開始（WebSocket + SSE）
 pnpm run demo:chat
 
-# 新しいタブでクライアントを開く
-pnpm run demo:chat:client
+# ブラウザでアクセス
+# http://localhost:3000 - トランスポート選択画面
+# http://localhost:3000/ws.html - WebSocket チャット
+# http://localhost:3000/sse.html - SSE チャット
 ```
 
-デモでは、**複数タブ間でリアルタイムチャット** が体験できます。各タブは別ユーザーとして接続され、メッセージ送信時にすべてのクライアントに即座に反映されます。
+### トランスポート比較
+
+| 機能 | WebSocket | SSE |
+|------|-----------|-----|
+| 双方向通信 | ✅ | ❌ (サーバー→クライアントのみ) |
+| プロトコル | WS/WSS | HTTP/HTTPS |
+| ファイアウォール | ⚠️ ブロックされる場合あり | ✅ 通常許可 |
+| ブラウザ対応 | ✅ モダンブラウザ | ✅ 広い互換性 |
+| 自動再接続 | ❌ 手動実装 | ✅ 自動 |
+| バイナリデータ | ✅ | ❌ (テキストのみ) |
+| 同時接続数 | 高 | 高 |
+
+デモでは、**複数タブ間でリアルタイムチャット** が体験できます。各タブは別ユーザーとして接続され、メッセージ送信時にすべてのクライアント（WebSocket/SSE両方）に即座に反映されます。
+
+**WebSocket** は双方向通信に適し、**SSE** はファイアウォールに強い一方通行通信に適しています。
 
 ## 📦 インストール
 
