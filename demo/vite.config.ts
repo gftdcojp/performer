@@ -11,7 +11,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['effect', '@effect-ts/core', '@effect-ts/system', 'xstate', '@microsoft/fast-element', '@microsoft/fast-foundation']
+      external: ['effect', '@effect-ts/core', '@effect-ts/system', '@gftdcojp/effect-actor', '@microsoft/fast-element', '@microsoft/fast-foundation']
     }
   },
   server: {

@@ -122,7 +122,7 @@ export const processMetadata = {
   hash: 'a1b2c3d4'
 };
 
-// Effect-TS + XState + Web Components + ActorDB統合
+// Effect-TS + Effect Actor + Web Components + ActorDB統合
 // すべてこの1ファイルに集約
 ```
 
@@ -210,7 +210,7 @@ actorDB.subscribeToEvents("user-*", (event) => {
 各プロセスファイルは：
 - **メタデータ** - ID, タイプ, バージョン, Hash
 - **Effect-TSロジック** - 型安全なビジネスロジック
-- **XStateマシン** - 状態遷移とBPMNマッピング
+- **Effect Actor** - アクターシステムと状態管理
 - **Web Components** - プロセス固有のUI
 - **ActorDB統合** - イベントソーシングによる永続化
 - **統合テスト** - プロセス全体の検証
@@ -414,7 +414,7 @@ export const processMetadata = {
 };
 
 // プロセスファイルにビジネスロジックを集約
-// Effect-TS + XState + Web Components + ActorDB統合
+// Effect-TS + Effect Actor + Web Components + ActorDB統合
 // すべてこの1ファイルで完結
 ```
 
@@ -537,7 +537,7 @@ MIT License - see LICENSE file for details
 ### コアテクノロジー
 - [ActorDB](https://github.com/com-junkawasaki/dekigoto) - イベントソーシングデータベース
 - [Effect-TS](https://effect.website) - 関数型プログラミングライブラリ
-- [XState](https://xstate.js.org) - ステートマネジメント
+- [Effect Actor](https://github.com/gftdcojp/effect-actor) - アクターシステムと状態管理
 - [WebAssembly](https://webassembly.org) - 高速関数実行ランタイム
 
 ### 比較対象

@@ -15,7 +15,7 @@ const program = new Command()
 
 program
   .name('performer')
-  .description('Web Framework CLI with EffectTS v3 + XState Actor + Web Components + WASM')
+  .description('Web Framework CLI with EffectTS v3 + Effect Actor + Web Components + WASM')
   .version('0.1.0')
 
 // Global options

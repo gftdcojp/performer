@@ -5,7 +5,7 @@
     "version": "0.1.0",
     "features": {
       "effect-ts": true,
-      "xstate": true,
+      "effect-actor": true,
       "web-components": true,
       "wasm": true,
       "rpc": true

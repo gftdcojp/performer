@@ -86,7 +86,7 @@ console.log('\n🎯 Expected functionality verification:');
 const expectedFeatures = [
   'Process aggregation in single .process.ts files',
   'Effect-TS based business logic',
-  'XState actor state management',
+  'Effect Actor state management',
   'Web Components UI rendering',
   'Capability-based authorization',
   'RPC communication layer',
@@ -102,7 +102,7 @@ expectedFeatures.forEach((feature, index) => {
 // Additional Saga features
 const sagaFeatures = [
   'Saga orchestration pattern implementation',
-  'Multi-process coordination with XState',
+  'Multi-process coordination with Effect Actor',
   'Compensation transactions (rollback)',
   'Saga event persistence in ActorDB',
   'BPMN-compatible saga representation'

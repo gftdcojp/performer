@@ -50,82 +50,96 @@ export const update{{Name}} = (id: string, updates: Partial<{{Name}}Entity>) =>
     },
   },
 
-  actor: {
-    description: 'Generate an XState actor',
+    actor: {
+      description: 'Generate an Effect Actor',
     files: {
       'src/actor/{{name}}-actor.ts': `// {{Name}} Actor
 // Merkle DAG: actor-node -> {{name}}-actor
 
-import { createMachine, assign } from "xstate"
-import { ActorContext, ActorEvent } from "./types"
+import { Effect } from "effect"
+import { ActorSystemUtils, Message } from "./effect-actor"
 
-// {{Name}} actor events
-export interface {{Name}}CreatedEvent extends ActorEvent {
-  readonly type: "{{NameUpper}}_CREATED"
+// {{Name}} actor messages
+export interface {{Name}}CreatedMessage extends Message {
+  readonly _tag: "{{Name}}Created"
   readonly payload: { id: string; name: string }
 }
 
-export interface {{Name}}UpdatedEvent extends ActorEvent {
-  readonly type: "{{NameUpper}}_UPDATED"
+export interface {{Name}}UpdatedMessage extends Message {
+  readonly _tag: "{{Name}}Updated"
   readonly payload: { id: string; updates: Record<string, unknown> }
 }
 
-// {{Name}} actor machine
-export const {{name}}Machine = createMachine<ActorContext, ActorEvent>({
-  id: '{{name}}',
-  initial: 'idle',
-  context: {
-    currentState: {},
-    events: [],
-  },
-  states: {
-    idle: {
-      on: {
-        {{NameUpper}}_CREATED: {
-          target: 'active',
-          actions: assign({
-            currentState: (context, event: {{Name}}CreatedEvent) => ({
-              ...context.currentState,
-              ...event.payload,
-            }),
-            events: (context, event: {{Name}}CreatedEvent) => [
-              ...context.events,
-              {
-                entityId: event.payload.id,
-                eventType: '{{name}}_created',
-                payload: event.payload,
-                timestamp: new Date(),
-                version: context.events.length + 1,
-              },
-            ],
-          }),
-        },
-      },
-    },
-    active: {
-      on: {
-        {{NameUpper}}_UPDATED: {
-          actions: assign({
-            currentState: (context, event: {{Name}}UpdatedEvent) => ({
-              ...context.currentState,
-              ...event.payload.updates,
-            }),
-            events: (context, event: {{Name}}UpdatedEvent) => [
-              ...context.events,
-              {
-                entityId: event.payload.id,
-                eventType: '{{name}}_updated',
-                payload: event.payload.updates,
-                timestamp: new Date(),
-                version: context.events.length + 1,
-              },
-            ],
-          }),
-        },
-      },
-    },
-  },
-})
+// {{Name}} Actor State
+export interface {{Name}}ActorState {
+  readonly id: string
+  readonly currentState: Record<string, unknown>
+  readonly events: readonly string[]
+  readonly error?: Error
+}
+
+// {{Name}} Actor Behavior
+export const create{{Name}}Behavior = () => {
+  return (state: {{Name}}ActorState, message: {{Name}}CreatedMessage | {{Name}}UpdatedMessage, context: any) => {
+    return Effect.gen(function* () {
+      switch (message._tag) {
+        case "{{Name}}Created": {
+          const { payload: { id, name } } = message
+          const newEvent = \`{{name}}-created: \${id}\`
+
+          return {
+            ...state,
+            id,
+            currentState: { ...state.currentState, id, name },
+            events: [...state.events, newEvent],
+          }
+        }
+
+        case "{{Name}}Updated": {
+          const { payload: { id, updates } } = message
+          const newEvent = \`{{name}}-updated: \${id}\`
+
+          return {
+            ...state,
+            currentState: { ...state.currentState, ...updates },
+            events: [...state.events, newEvent],
+          }
+        }
+
+        default:
+          return state
+      }
+    })
+  }
+}
+
+// {{Name}} Actor Factory
+export class {{Name}}ActorFactory {
+  // Merkle DAG: actor-factory
+  static create{{Name}}Actor = (
+    id: string
+  ): Effect.Effect<any, Error, never> => {
+    return Effect.gen(function* () {
+      // Create actor system
+      const system = yield* ActorSystemUtils.make("{{name}}-system")
+
+      // Initial state
+      const initialState: {{Name}}ActorState = {
+        id,
+        currentState: {},
+        events: [],
+      }
+
+      // Create behavior
+      const behavior = create{{Name}}Behavior()
+
+      // Create actor
+      const actorRef = yield* system.make(id, initialState, behavior)
+
+      return actorRef
+    })
+  }
+}
 `,
     },
   },

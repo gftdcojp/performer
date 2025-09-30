@@ -1,6 +1,6 @@
 // Demo application entry point
 // This demonstrates how to use the Performer framework
-// Note: We only use Performer's public API, not direct dependencies on effect/xstate/etc.
+// Note: We only use Performer's public API, not direct dependencies on effect/effect-actor/etc.
 
 import {
   userOnboardingProcess,

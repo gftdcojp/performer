@@ -211,7 +211,7 @@ export default defineConfig({
     "version": "0.1.0",
     "features": {
       "effect-ts": true,
-      "xstate": true,
+      "effect-actor": true,
       "web-components": true,
       "wasm": true,
       "rpc": true
@@ -346,7 +346,7 @@ export const initCommand = async (options: InitOptions) => {
       dependencies: {
         "@effect-ts/core": "^0.60.0",
         "@effect-ts/system": "^0.57.0",
-        "xstate": "^5.0.0",
+        "@gftdcojp/effect-actor": "github:gftdcojp/effect-actor",
         "@microsoft/fast-element": "^2.0.0-beta.26",
         "@microsoft/fast-foundation": "^3.0.0-beta.26",
         "vite": "^5.0.0",
