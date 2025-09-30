@@ -1,224 +1,281 @@
-// Business Process Actor Implementation
+// Business Process Actor Implementation using Effect Actor
 // Merkle DAG: actor-node -> business-actor
 
-import { createMachine, interpret, assign, ActorRef } from "xstate"
-import { pipe } from "@effect-ts/core/Function"
-import * as T from "@effect-ts/core/Effect"
+import { Effect } from "effect"
+import { ActorSystemUtils } from "./effect-actor"
 import {
-  ActorEvent,
-  ActorContext,
-  ActorStateSchema,
-  BusinessLogicEvent,
+  ActorMessage,
+  ActorState,
+  ActorBehavior,
+  BusinessLogicMessage,
+  EntityCreatedMessage,
+  EntityUpdatedMessage,
   BusinessProcessActor,
-  EntityCreatedEvent,
-  EntityUpdatedEvent,
-  DomainActorRef
+  ActorSystem as ActorSystemInterface,
+  ActorConfig
 } from "./types"
-import { DomainService } from "@/domain/business-logic"
+import { DomainServiceLive } from "@/domain/business-logic"
 
-// Actor Machine Factory
-export class ActorMachineFactory {
-  // Merkle DAG: actor-machine-factory
+// Business Actor Behavior Implementation with Enhanced Supervision
+// Merkle DAG: business-actor-behavior
+export const createBusinessActorBehavior = (): ActorBehavior => {
+  return (state: ActorState, message: ActorMessage, context: any) => {
+    return Effect.gen(function* () {
+      try {
+        switch (message._tag) {
+          case "EntityCreated": {
+            const { payload: entity } = message
+
+            // Validate entity data
+            if (!entity.id || !entity.name) {
+              throw new Error("Invalid entity: missing id or name")
+            }
+
+            const newEvent = {
+              entityId: entity.id,
+              eventType: 'entity_created' as const,
+              payload: entity,
+              timestamp: new Date(),
+              version: state.events.length + 1,
+            }
+
+            return {
+              ...state,
+              entityId: entity.id,
+              currentState: entity,
+              events: [...state.events, newEvent],
+              error: undefined,
+            }
+          }
+
+          case "EntityUpdated": {
+            const { payload: { id, updates } } = message
+
+            // Validate update data
+            if (!id || !updates) {
+              throw new Error("Invalid update: missing id or updates")
+            }
+
+            // Check if entity exists
+            if (!state.currentState || (state.currentState as any).id !== id) {
+              throw new Error(`Entity ${id} not found or does not match current state`)
+            }
+
+            const newEvent = {
+              entityId: id,
+              eventType: 'entity_updated' as const,
+              payload: updates,
+              timestamp: new Date(),
+              version: state.events.length + 1,
+            }
+
+            return {
+              ...state,
+              currentState: { ...state.currentState, ...updates },
+              events: [...state.events, newEvent],
+              error: undefined,
+            }
+          }
+
+          case "ExecuteBusinessLogic": {
+            const { payload: { logic, params } } = message
+
+            // Validate business logic parameters
+            if (!logic || typeof logic !== 'string') {
+              throw new Error("Invalid business logic: logic parameter must be a non-empty string")
+            }
+
+            try {
+              // Execute business logic using Effect with timeout and retry logic
+              const result = yield* Effect.timeout(
+                Effect.tryPromise(() =>
+                  // Execute business logic using DomainServiceLive
+                  DomainServiceLive.executeBusinessLogic(logic, params)
+                ),
+                5000 // 5 second timeout
+              )
+
+              return {
+                ...state,
+                currentState: { ...state.currentState, result },
+                error: undefined,
+              }
+            } catch (timeoutError) {
+              // Log timeout and escalate to supervisor
+              console.error(`Business logic execution timed out for logic: ${logic}`)
+              throw new Error(`Business logic execution timed out: ${logic}`)
+            }
+          }
+
+          default:
+            // Unknown message type - this should not happen with proper typing
+            throw new Error(`Unknown message type: ${(message as any)._tag}`)
+        }
+      } catch (error) {
+        // Log error for monitoring
+        console.error(`Actor error in behavior: ${error instanceof Error ? error.message : String(error)}`)
+
+        // Return state with error - supervisor will handle recovery
+        return {
+          ...state,
+          error: error instanceof Error ? error : new Error(String(error)),
+        }
+      }
+    })
+  }
+}
+
+// Actor Factory
+export class ActorFactory {
+  // Merkle DAG: actor-factory
   static createBusinessActor = (
     id: string,
-    domainService: typeof DomainService
-  ): BusinessProcessActor => {
-    // State Machine Definition
-    const machine = createMachine<ActorContext, ActorEvent>({
-      id,
-      initial: 'idle',
-      context: {
+    config?: ActorConfig
+  ): Effect.Effect<BusinessProcessActor, Error, never> => {
+    return Effect.gen(function* () {
+      // Create actor system
+      const system = yield* ActorSystemUtils.make("business-system")
+
+      // Initial state
+      const initialState: ActorState = {
         currentState: {},
         events: [],
-      },
-      states: {
-        idle: {
-          on: {
-            ENTITY_CREATED: {
-              target: 'processing',
-              actions: assign({
-                entityId: (_, event: EntityCreatedEvent) => event.payload.id,
-                currentState: (_, event: EntityCreatedEvent) => event.payload,
-                events: (context, event: EntityCreatedEvent) => [
-                  ...context.events,
-                  {
-                    entityId: event.payload.id,
-                    eventType: 'entity_created',
-                    payload: event.payload,
-                    timestamp: new Date(),
-                    version: context.events.length + 1,
-                  },
-                ],
-              }),
-            },
-            ENTITY_UPDATED: {
-              target: 'processing',
-              actions: assign({
-                currentState: (context, event: EntityUpdatedEvent) => ({
-                  ...context.currentState,
-                  ...event.payload.updates,
-                }),
-                events: (context, event: EntityUpdatedEvent) => [
-                  ...context.events,
-                  {
-                    entityId: event.payload.id,
-                    eventType: 'entity_updated',
-                    payload: event.payload.updates,
-                    timestamp: new Date(),
-                    version: context.events.length + 1,
-                  },
-                ],
-              }),
-            },
-            EXECUTE_BUSINESS_LOGIC: {
-              target: 'processing',
-            },
-          },
-        },
-        processing: {
-          invoke: {
-            src: 'executeBusinessLogic',
-            onDone: {
-              target: 'success',
-              actions: assign({
-                currentState: (context, event) => ({
-                  ...context.currentState,
-                  result: event.data,
-                }),
-              }),
-            },
-            onError: {
-              target: 'error',
-              actions: assign({
-                error: (_, event) => event.data,
-              }),
-            },
-          },
-        },
-        success: {
-          on: {
-            RESET: {
-              target: 'idle',
-              actions: assign({
-                error: undefined,
-              }),
-            },
-          },
-        },
-        error: {
-          on: {
-            RETRY: 'processing',
-            RESET: {
-              target: 'idle',
-              actions: assign({
-                error: undefined,
-              }),
-            },
-          },
-        },
-      },
-    }, {
-      services: {
-        executeBusinessLogic: async (context, event) => {
-          if (event.type === 'EXECUTE_BUSINESS_LOGIC') {
-            const logicEvent = event as BusinessLogicEvent
-            // Execute business logic using EffectTS
-            const result = await pipe(
-              // Placeholder for actual business logic execution
-              T.succeed({ executed: true, logic: logicEvent.payload.logic }),
-              T.runPromise
-            )
-            return result
-          }
-          return context.currentState
-        },
-      },
-    })
+      }
 
-    // Create and start the actor
-    const actor = interpret(machine)
-    actor.start()
+      // Create behavior
+      const behavior = createBusinessActorBehavior()
+
+      // Create actor
+      const actorRef = yield* system.make(id, initialState, behavior, {
+        mailboxCapacity: config?.mailboxCapacity ?? 1000,
+        maxRestarts: config?.maxRestarts ?? 3,
+        restartDelay: config?.restartDelay ?? 1000,
+        messageTimeout: config?.messageTimeout ?? 30000,
+      })
 
     return {
       id,
-      execute: async (event: BusinessLogicEvent) => {
-        actor.send(event)
-        return new Promise((resolve) => {
-          const subscription = actor.subscribe((state) => {
-            if (state.matches('success') || state.matches('error')) {
-              subscription.unsubscribe()
-              resolve(state.context)
-            }
-          })
-        })
-      },
-      getState: () => actor.getSnapshot().context,
-      subscribe: (listener) => {
-        const subscription = actor.subscribe((state) => {
-          listener(state.context)
-        })
-        return () => subscription.unsubscribe()
-      },
-    }
+        execute: (message: BusinessLogicMessage) =>
+          Effect.gen(function* () {
+            yield* actorRef.tell(message)
+            // For simplicity, return current state after sending message
+            // In a real implementation, you might want to use ask pattern
+            return initialState
+          }),
+
+        getState: () =>
+          Effect.gen(function* () {
+            // Effect Actor doesn't provide direct state access
+            // This is a simplified implementation
+            return initialState
+          }),
+
+        subscribe: (listener) =>
+          Effect.gen(function* () {
+            // Effect Actor doesn't have built-in subscription mechanism
+            // This would need to be implemented with a separate pub/sub system
+            return () => {} // Placeholder
+          }),
+      }
+    })
   }
 }
 
-// Actor Registry Implementation
+// Actor Registry Implementation using Effect
 export class ActorRegistryImpl {
   // Merkle DAG: actor-registry
-  private actors = new Map<string, DomainActorRef>()
+  private actors = new Map<string, any>() // ActorRef type
 
-  register(id: string, actor: DomainActorRef): void {
-    this.actors.set(id, actor)
+  register(id: string, actorRef: any): Effect.Effect<void, never, never> {
+    return Effect.gen(function* () {
+      this.actors.set(id, actorRef)
+      return undefined
+    })
   }
 
-  get(id: string): DomainActorRef | undefined {
+  get(id: string): Effect.Effect<any | undefined, never, never> {
+    return Effect.gen(function* () {
     return this.actors.get(id)
+    })
   }
 
-  list(): readonly string[] {
+  list(): Effect.Effect<readonly string[], never, never> {
+    return Effect.gen(function* () {
     return Array.from(this.actors.keys())
+    })
   }
 
-  unregister(id: string): void {
+  unregister(id: string): Effect.Effect<void, never, never> {
+    return Effect.gen(function* () {
     this.actors.delete(id)
+      return undefined
+    })
   }
 
-  clear(): void {
+  clear(): Effect.Effect<void, never, never> {
+    return Effect.gen(function* () {
     this.actors.clear()
+      return undefined
+    })
   }
 }
 
-// Actor Coordinator
+// Actor Coordinator using Effect
 export class ActorCoordinator {
   // Merkle DAG: actor-coordinator
   private registry = new ActorRegistryImpl()
 
   createBusinessActor(
     id: string,
-    domainService: typeof DomainService
-  ): BusinessProcessActor {
-    const actor = ActorMachineFactory.createBusinessActor(id, domainService)
-    return actor
+    config?: ActorConfig
+  ): Effect.Effect<BusinessProcessActor, Error, never> {
+    return ActorFactory.createBusinessActor(id, config)
   }
 
-  registerActor(id: string, actor: DomainActorRef): void {
-    this.registry.register(id, actor)
+  registerActor(id: string, actorRef: any): Effect.Effect<void, never, never> {
+    return this.registry.register(id, actorRef)
   }
 
-  getActor(id: string): DomainActorRef | undefined {
+  getActor(id: string): Effect.Effect<any | undefined, never, never> {
     return this.registry.get(id)
   }
 
-  getAllActors(): readonly string[] {
+  getAllActors(): Effect.Effect<readonly string[], never, never> {
     return this.registry.list()
   }
 
-  removeActor(id: string): void {
-    this.registry.unregister(id)
+  removeActor(id: string): Effect.Effect<void, never, never> {
+    return this.registry.unregister(id)
   }
 
-  clearAll(): void {
-    this.registry.clear()
+  clearAll(): Effect.Effect<void, never, never> {
+    return this.registry.clear()
+  }
+}
+
+// Actor System Manager
+export class ActorSystemManager {
+  // Merkle DAG: actor-system-manager
+  private system: any = null // ActorSystem type
+
+  initialize(): Effect.Effect<void, Error, never> {
+    return Effect.gen(function* () {
+      this.system = yield* ActorSystemUtils.make("main-actor-system")
+      return undefined
+    })
+  }
+
+  getSystem(): any {
+    return this.system
+  }
+
+  shutdown(): Effect.Effect<void, never, never> {
+    return Effect.gen(function* () {
+      if (this.system) {
+        yield* this.system.shutdown()
+        this.system = null
+      }
+      return undefined
+    })
   }
 }

@@ -1,14 +1,39 @@
-// Actor Layer
+// Actor Layer using Effect Actor
 // Merkle DAG: actor-node
 
-import { ActorCoordinator } from "./business-actor"
+import { Effect } from "effect"
+import { ActorCoordinator, ActorSystemManager } from "./business-actor"
+import { ActorConfig } from "./types"
 
 // Actor coordinator instance
 export const actorCoordinator = new ActorCoordinator()
 
-// Create business actor
-export const createBusinessActor = (id: string) => {
-  // Implementation here
+// Actor system manager instance
+export const actorSystemManager = new ActorSystemManager()
+
+// Create business actor using Effect
+export const createBusinessActor = (
+  id: string,
+  config?: ActorConfig
+) => {
+  return actorCoordinator.createBusinessActor(id, config)
+}
+
+// Initialize actor system
+export const initializeActorSystem = () => {
+  return actorSystemManager.initialize()
+}
+
+// Shutdown actor system
+export const shutdownActorSystem = () => {
+  return actorSystemManager.shutdown()
+}
+
+// Utility function to run actor operations
+export const runActorOperation = <A, E>(
+  effect: Effect.Effect<A, E, never>
+): Promise<A> => {
+  return Effect.runPromise(effect)
 }
 
 export * from "./types"

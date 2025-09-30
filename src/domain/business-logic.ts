@@ -122,6 +122,11 @@ export interface DomainService {
   readonly validateEntity: <T extends BusinessEntity>(
     entity: T
   ) => Effect.Effect<never, Error, boolean>
+
+  readonly executeBusinessLogic: (
+    logicName: string,
+    params: Record<string, unknown>
+  ) => Promise<Record<string, unknown>>
 }
 
 export const DomainServiceLive: DomainService = {
@@ -147,4 +152,36 @@ export const DomainServiceLive: DomainService = {
     Effect.succeed(
       !!(entity.id && entity.createdAt && entity.updatedAt)
     ),
+
+  executeBusinessLogic: async (logicName: string, params: Record<string, unknown>) => {
+    // Business logic execution with supervision-friendly error handling
+    switch (logicName) {
+      case 'user-registration':
+        // Simulate user registration logic
+        if (!params.email || !params.password) {
+          throw new Error('Missing required fields: email and password')
+        }
+        return {
+          success: true,
+          userId: crypto.randomUUID(),
+          message: 'User registered successfully'
+        }
+
+      case 'entity-validation':
+        // Simulate entity validation logic
+        const entity = params.entity as any
+        if (!entity || !entity.id) {
+          throw new Error('Invalid entity: missing id')
+        }
+        return {
+          valid: true,
+          entityId: entity.id,
+          validatedAt: new Date()
+        }
+
+      default:
+        // Unknown logic - supervisor will handle this
+        throw new Error(`Unknown business logic: ${logicName}`)
+    }
+  },
 }

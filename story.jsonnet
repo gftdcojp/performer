@@ -1,6 +1,6 @@
 {
   // Process Network Graph Model for Web Framework CLI
-  // Based on ActorDB (dekigoto) + EffectTS v3 + XState Actor
+  // Based on ActorDB (dekigoto) + EffectTS v3 + Effect Actor
 
   nodes: {
     // Core Infrastructure Nodes
@@ -28,10 +28,10 @@
 
     // State Management Layer
     actor: {
-      type: 'xstate-actor',
+      type: 'effect-actor',
       deps: ['domain'],
-      provides: ['state-management', 'actors'],
-      description: 'State management using XState Actors'
+      provides: ['state-management', 'actors', 'supervision'],
+      description: 'State management using Effect Actor with supervision and fault tolerance'
     },
 
     // UI Layer
@@ -97,7 +97,8 @@
     base_dependencies: [
       '@effect-ts/core',
       '@effect-ts/system',
-      'xstate',
+      '@effect-ts/actors-v3',    // Effect Actor for state management
+      'effect',                  // Effect v3
       '@microsoft/fast-element',  // Web Components
       '@types/web',              // Web APIs types
       'vite',                    // Build tool
