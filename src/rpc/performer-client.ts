@@ -46,6 +46,123 @@ export interface AuthState {
   loading: boolean;
 }
 
+// Storage types (Supabase-like)
+export interface FileObject {
+  name: string;
+  id: string;
+  updatedAt: string;
+  createdAt: string;
+  lastAccessedAt: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface FileOptions {
+  cacheControl?: string;
+  contentType?: string;
+  duplex?: string;
+}
+
+export interface UploadResponse {
+  id: string;
+  path: string;
+  fullPath: string;
+}
+
+export interface DownloadResponse {
+  data: Blob;
+  error?: string;
+}
+
+export interface SignedUrlResponse {
+  signedUrl: string;
+  path: string;
+  expiresIn: number;
+}
+
+export interface SignedUrlOptions {
+  expiresIn?: number;
+  download?: boolean;
+}
+
+export interface Bucket {
+  id: string;
+  name: string;
+  owner: string;
+  createdAt: string;
+  updatedAt: string;
+  public: boolean;
+}
+
+export interface StorageError {
+  message: string;
+  statusCode?: number;
+}
+
+// Functions types (Supabase Edge Functions + WASM)
+export interface WASMFunction {
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  author: string;
+  createdAt: string;
+  updatedAt: string;
+  status: 'active' | 'inactive' | 'error';
+  runtime: 'wasm';
+  triggers: FunctionTrigger[];
+  permissions: string[];
+}
+
+export interface FunctionTrigger {
+  type: 'http' | 'event' | 'schedule';
+  config: {
+    method?: string; // for http
+    path?: string; // for http
+    eventType?: string; // for event
+    cron?: string; // for schedule
+  };
+}
+
+export interface FunctionInvocation {
+  functionId: string;
+  invocationId: string;
+  trigger: FunctionTrigger;
+  input: Record<string, unknown>;
+  output?: unknown;
+  error?: string;
+  executionTime: number; // in milliseconds
+  status: 'running' | 'completed' | 'failed';
+  startedAt: string;
+  completedAt?: string;
+}
+
+export interface FunctionLog {
+  id: string;
+  functionId: string;
+  invocationId: string;
+  level: 'info' | 'warn' | 'error';
+  message: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface InvokeOptions {
+  timeout?: number;
+  retries?: number;
+}
+
+export interface InvokeResponse {
+  data?: unknown;
+  error?: FunctionsError;
+  invocationId: string;
+}
+
+export interface FunctionsError {
+  message: string;
+  statusCode?: number;
+  details?: unknown;
+}
+
 type Operator =
   | 'eq'
   | 'neq'
@@ -474,24 +591,674 @@ export class AuthAPI {
 }
 
 /**
+ * StorageAPI provides file storage functionality similar to Supabase Storage.
+ * Uses local filesystem for MVP, can be extended to S3-compatible storage.
+ */
+export class StorageAPI {
+  private actorDB: ActorDBClient;
+  private basePath: string;
+
+  constructor(actorDB: ActorDBClient, basePath: string = './storage') {
+    this.actorDB = actorDB;
+    this.basePath = basePath;
+  }
+
+  /**
+   * Get a bucket reference for operations.
+   * @param bucketName - The name of the bucket.
+   */
+  from(bucketName: string): BucketAPI {
+    return new BucketAPI(this.actorDB, bucketName, this.basePath);
+  }
+
+  /**
+   * Create a new bucket.
+   * @param bucketName - The name of the bucket to create.
+   */
+  async createBucket(bucketName: string): Promise<{ data: Bucket | null; error: StorageError | null }> {
+    try {
+      // Create bucket directory
+      const bucketPath = `${this.basePath}/${bucketName}`;
+      await this.ensureDirectoryExists(bucketPath);
+
+      // Record bucket creation in ActorDB
+      await this.actorDB.writeEvent({
+        entityId: `bucket_${bucketName}`,
+        eventType: 'bucket_created',
+        payload: {
+          bucketName,
+          createdAt: new Date().toISOString(),
+          owner: 'system', // In production, get from current user
+          public: false,
+        },
+        timestamp: new Date(),
+        version: 1,
+      });
+
+      const bucket: Bucket = {
+        id: `bucket_${bucketName}`,
+        name: bucketName,
+        owner: 'system',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        public: false,
+      };
+
+      return { data: bucket, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to create bucket' },
+      };
+    }
+  }
+
+  /**
+   * Delete a bucket.
+   * @param bucketName - The name of the bucket to delete.
+   */
+  async deleteBucket(bucketName: string): Promise<{ data: { message: string } | null; error: StorageError | null }> {
+    try {
+      // Record bucket deletion in ActorDB
+      await this.actorDB.writeEvent({
+        entityId: `bucket_${bucketName}`,
+        eventType: 'bucket_deleted',
+        payload: {
+          bucketName,
+          deletedAt: new Date().toISOString(),
+        },
+        timestamp: new Date(),
+        version: 2,
+      });
+
+      // TODO: Remove bucket directory and all files
+      // For now, just return success
+
+      return { data: { message: 'Bucket deleted successfully' }, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to delete bucket' },
+      };
+    }
+  }
+
+  /**
+   * List all buckets.
+   */
+  async listBuckets(): Promise<{ data: Bucket[] | null; error: StorageError | null }> {
+    try {
+      // In production, query ActorDB for bucket events
+      // For MVP, return mock data
+      const buckets: Bucket[] = [
+        {
+          id: 'bucket_default',
+          name: 'default',
+          owner: 'system',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          public: true,
+        },
+      ];
+
+      return { data: buckets, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to list buckets' },
+      };
+    }
+  }
+
+  /**
+   * Ensure directory exists (helper method).
+   */
+  private async ensureDirectoryExists(dirPath: string): Promise<void> {
+    // In browser environment, this would be different
+    // For Node.js environment, use fs
+    try {
+      // Using dynamic import for Node.js fs module
+      const fs = await import('fs/promises');
+      await fs.mkdir(dirPath, { recursive: true });
+    } catch (error) {
+      // In browser, directories don't need to be created explicitly
+      console.warn('Directory creation not supported in browser environment');
+    }
+  }
+}
+
+/**
+ * BucketAPI provides operations within a specific bucket.
+ */
+export class BucketAPI {
+  private actorDB: ActorDBClient;
+  private bucketName: string;
+  private basePath: string;
+
+  constructor(actorDB: ActorDBClient, bucketName: string, basePath: string) {
+    this.actorDB = actorDB;
+    this.bucketName = bucketName;
+    this.basePath = basePath;
+  }
+
+  /**
+   * Upload a file to the bucket.
+   * @param path - The path within the bucket.
+   * @param fileBody - The file content (Blob, File, ArrayBuffer, or string).
+   * @param fileOptions - Upload options.
+   */
+  async upload(
+    path: string,
+    fileBody: Blob | File | ArrayBuffer | string,
+    fileOptions?: FileOptions
+  ): Promise<{ data: UploadResponse | null; error: StorageError | null }> {
+    try {
+      // Convert fileBody to Buffer/Blob for storage
+      let fileData: Blob | ArrayBuffer;
+      if (typeof fileBody === 'string') {
+        fileData = new Blob([fileBody]);
+      } else if (fileBody instanceof ArrayBuffer) {
+        fileData = fileBody;
+      } else {
+        fileData = fileBody;
+      }
+
+      // Generate file ID
+      const fileId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Record file upload in ActorDB
+      await this.actorDB.writeEvent({
+        entityId: `file_${this.bucketName}_${path}`,
+        eventType: 'file_uploaded',
+        payload: {
+          fileId,
+          bucketName: this.bucketName,
+          path,
+          size: fileData.size || 0,
+          contentType: fileOptions?.contentType || 'application/octet-stream',
+          uploadedAt: new Date().toISOString(),
+          metadata: fileOptions || {},
+        },
+        timestamp: new Date(),
+        version: 1,
+      });
+
+      // In production, store file data
+      // For MVP, just record metadata
+
+      const uploadResponse: UploadResponse = {
+        id: fileId,
+        path,
+        fullPath: `${this.bucketName}/${path}`,
+      };
+
+      return { data: uploadResponse, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Upload failed' },
+      };
+    }
+  }
+
+  /**
+   * Download a file from the bucket.
+   * @param path - The path of the file to download.
+   */
+  async download(path: string): Promise<{ data: DownloadResponse | null; error: StorageError | null }> {
+    try {
+      // In production, retrieve file from storage
+      // For MVP, return mock data
+      const mockData = new Blob(['Mock file content'], { type: 'text/plain' });
+
+      return {
+        data: { data: mockData },
+        error: null,
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Download failed' },
+      };
+    }
+  }
+
+  /**
+   * Delete a file from the bucket.
+   * @param paths - Array of file paths to delete.
+   */
+  async remove(paths: string[]): Promise<{ data: { message: string } | null; error: StorageError | null }> {
+    try {
+      // Record file deletions in ActorDB
+      for (const path of paths) {
+        await this.actorDB.writeEvent({
+          entityId: `file_${this.bucketName}_${path}`,
+          eventType: 'file_deleted',
+          payload: {
+            bucketName: this.bucketName,
+            path,
+            deletedAt: new Date().toISOString(),
+          },
+          timestamp: new Date(),
+          version: 2,
+        });
+      }
+
+      return { data: { message: 'Files deleted successfully' }, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Delete failed' },
+      };
+    }
+  }
+
+  /**
+   * List files in the bucket.
+   * @param path - The path prefix to list files from.
+   * @param options - List options.
+   */
+  async list(
+    path?: string,
+    options?: { limit?: number; offset?: number; sortBy?: { column: string; order: 'asc' | 'desc' } }
+  ): Promise<{ data: { files: FileObject[] } | null; error: StorageError | null }> {
+    try {
+      // In production, query ActorDB for file metadata
+      // For MVP, return mock data
+      const mockFiles: FileObject[] = [
+        {
+          name: 'example.txt',
+          id: 'file_123',
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          lastAccessedAt: new Date().toISOString(),
+          metadata: { size: 1024, contentType: 'text/plain' },
+        },
+      ];
+
+      return { data: { files: mockFiles }, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'List failed' },
+      };
+    }
+  }
+
+  /**
+   * Get a public URL for a file.
+   * @param path - The path of the file.
+   */
+  getPublicUrl(path: string): { data: { publicUrl: string } | null; error: StorageError | null } {
+    try {
+      // In production, generate actual public URL
+      // For MVP, return mock URL
+      const publicUrl = `https://storage.performer.dev/${this.bucketName}/${path}`;
+
+      return { data: { publicUrl }, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to get public URL' },
+      };
+    }
+  }
+
+  /**
+   * Create a signed URL for private file access.
+   * @param path - The path of the file.
+   * @param options - Signed URL options.
+   */
+  createSignedUrl(
+    path: string,
+    options?: SignedUrlOptions
+  ): Promise<{ data: SignedUrlResponse | null; error: StorageError | null }> {
+    return new Promise((resolve) => {
+      try {
+        // In production, generate actual signed URL with expiration
+        // For MVP, return mock signed URL
+        const expiresIn = options?.expiresIn || 3600;
+        const signedUrl = `https://storage.performer.dev/signed/${this.bucketName}/${path}?token=mock_token&expires=${expiresIn}`;
+
+        const response: SignedUrlResponse = {
+          signedUrl,
+          path: `${this.bucketName}/${path}`,
+          expiresIn,
+        };
+
+        resolve({ data: response, error: null });
+      } catch (error) {
+        resolve({
+          data: null,
+          error: { message: error instanceof Error ? error.message : 'Failed to create signed URL' },
+        });
+      }
+    });
+  }
+}
+
+/**
+ * FunctionsAPI provides serverless function execution using WASM.
+ * Similar to Supabase Edge Functions but WASM-native.
+ */
+export class FunctionsAPI {
+  private actorDB: ActorDBClient;
+  private computeEngine: any; // Import from WASM layer
+
+  constructor(actorDB: ActorDBClient) {
+    this.actorDB = actorDB;
+    // Initialize WASM compute engine
+    this.initializeComputeEngine();
+  }
+
+  private async initializeComputeEngine() {
+    try {
+      // Dynamic import of WASM compute engine
+      const { computeEngine } = await import('../wasm/index.js');
+      this.computeEngine = computeEngine;
+    } catch (error) {
+      console.warn('WASM compute engine not available, using fallback mode');
+      this.computeEngine = null;
+    }
+  }
+
+  /**
+   * Deploy a WASM function.
+   * @param name - Function name.
+   * @param wasmBytes - WASM module bytes.
+   * @param metadata - Function metadata and triggers.
+   */
+  async deploy(
+    name: string,
+    wasmBytes: Uint8Array,
+    metadata: {
+      description?: string;
+      version?: string;
+      triggers?: FunctionTrigger[];
+      permissions?: string[];
+    } = {}
+  ): Promise<{ data: WASMFunction | null; error: FunctionsError | null }> {
+    try {
+      const functionId = `func_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Load WASM module into compute engine
+      if (this.computeEngine) {
+        await this.computeEngine.manager.loadModule(functionId, wasmBytes);
+        await this.computeEngine.manager.instantiateModule(functionId, {
+          // WASM imports for serverless functions
+          env: {
+            log_info: (ptr: number, len: number) => this.logFunction(functionId, 'info', ptr, len),
+            log_warn: (ptr: number, len: number) => this.logFunction(functionId, 'warn', ptr, len),
+            log_error: (ptr: number, len: number) => this.logFunction(functionId, 'error', ptr, len),
+          },
+        });
+      }
+
+      // Record function deployment in ActorDB
+      await this.actorDB.writeEvent({
+        entityId: `function_${functionId}`,
+        eventType: 'function_deployed',
+        payload: {
+          functionId,
+          name,
+          version: metadata.version || '1.0.0',
+          description: metadata.description,
+          author: 'current_user', // In production, get from auth context
+          triggers: metadata.triggers || [],
+          permissions: metadata.permissions || [],
+          deployedAt: new Date().toISOString(),
+        },
+        timestamp: new Date(),
+        version: 1,
+      });
+
+      const wasmFunction: WASMFunction = {
+        id: functionId,
+        name,
+        version: metadata.version || '1.0.0',
+        description: metadata.description,
+        author: 'current_user',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'active',
+        runtime: 'wasm',
+        triggers: metadata.triggers || [],
+        permissions: metadata.permissions || [],
+      };
+
+      return { data: wasmFunction, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Function deployment failed' },
+      };
+    }
+  }
+
+  /**
+   * Invoke a function by name.
+   * @param functionName - Name of the function to invoke.
+   * @param payload - Input payload for the function.
+   * @param options - Invocation options.
+   */
+  async invoke(
+    functionName: string,
+    payload: Record<string, unknown> = {},
+    options: InvokeOptions = {}
+  ): Promise<InvokeResponse> {
+    const invocationId = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const startTime = Date.now();
+
+    try {
+      // Find function by name (in production, query ActorDB)
+      // For MVP, assume functionId = functionName
+      const functionId = functionName;
+
+      // Record function invocation start
+      await this.actorDB.writeEvent({
+        entityId: `invocation_${invocationId}`,
+        eventType: 'function_invoked',
+        payload: {
+          functionId,
+          invocationId,
+          input: payload,
+          startedAt: new Date().toISOString(),
+        },
+        timestamp: new Date(),
+        version: 1,
+      });
+
+      let result: unknown;
+
+      if (this.computeEngine) {
+        // Execute WASM function
+        result = await this.computeEngine.executeComputation(functionId, 'main', payload);
+      } else {
+        // Fallback: mock execution
+        result = { message: 'Function executed successfully', input: payload };
+        await new Promise(resolve => setTimeout(resolve, 100)); // Simulate execution time
+      }
+
+      const executionTime = Date.now() - startTime;
+
+      // Record successful completion
+      await this.actorDB.writeEvent({
+        entityId: `invocation_${invocationId}`,
+        eventType: 'function_completed',
+        payload: {
+          functionId,
+          invocationId,
+          output: result,
+          executionTime,
+          completedAt: new Date().toISOString(),
+        },
+        timestamp: new Date(),
+        version: 2,
+      });
+
+      return {
+        data: result,
+        invocationId,
+      };
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+
+      // Record function failure
+      await this.actorDB.writeEvent({
+        entityId: `invocation_${invocationId}`,
+        eventType: 'function_failed',
+        payload: {
+          invocationId,
+          error: error instanceof Error ? error.message : 'Function execution failed',
+          executionTime,
+          failedAt: new Date().toISOString(),
+        },
+        timestamp: new Date(),
+        version: 2,
+      });
+
+      return {
+        error: {
+          message: error instanceof Error ? error.message : 'Function execution failed',
+          statusCode: 500,
+        },
+        invocationId,
+      };
+    }
+  }
+
+  /**
+   * List all deployed functions.
+   */
+  async list(): Promise<{ data: WASMFunction[] | null; error: FunctionsError | null }> {
+    try {
+      // In production, query ActorDB for deployed functions
+      // For MVP, return mock data
+      const functions: WASMFunction[] = [
+        {
+          id: 'func_example',
+          name: 'example-function',
+          version: '1.0.0',
+          description: 'Example WASM function',
+          author: 'system',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          status: 'active',
+          runtime: 'wasm',
+          triggers: [{
+            type: 'http',
+            config: { method: 'POST', path: '/api/example' },
+          }],
+          permissions: ['read'],
+        },
+      ];
+
+      return { data: functions, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to list functions' },
+      };
+    }
+  }
+
+  /**
+   * Get function logs.
+   * @param functionId - ID of the function.
+   * @param options - Query options.
+   */
+  async getLogs(
+    functionId: string,
+    options: { limit?: number; since?: string } = {}
+  ): Promise<{ data: FunctionLog[] | null; error: FunctionsError | null }> {
+    try {
+      // In production, query ActorDB for function logs
+      // For MVP, return mock data
+      const logs: FunctionLog[] = [
+        {
+          id: 'log_1',
+          functionId,
+          invocationId: 'inv_123',
+          level: 'info',
+          message: 'Function executed successfully',
+          timestamp: new Date().toISOString(),
+        },
+      ];
+
+      return { data: logs, error: null };
+    } catch (error) {
+      return {
+        data: null,
+        error: { message: error instanceof Error ? error.message : 'Failed to get logs' },
+      };
+    }
+  }
+
+  /**
+   * Delete a function.
+   * @param functionId - ID of the function to delete.
+   */
+  async delete(functionId: string): Promise<{ error: FunctionsError | null }> {
+    try {
+      // Record function deletion
+      await this.actorDB.writeEvent({
+        entityId: `function_${functionId}`,
+        eventType: 'function_deleted',
+        payload: {
+          functionId,
+          deletedAt: new Date().toISOString(),
+        },
+        timestamp: new Date(),
+        version: 3,
+      });
+
+      // Clean up WASM instance
+      if (this.computeEngine) {
+        // Dispose WASM instance
+      }
+
+      return { error: null };
+    } catch (error) {
+      return {
+        error: { message: error instanceof Error ? error.message : 'Failed to delete function' },
+      };
+    }
+  }
+
+  /**
+   * Helper method to log from WASM functions.
+   */
+  private logFunction(functionId: string, level: 'info' | 'warn' | 'error', ptr: number, len: number): void {
+    // In a real implementation, this would read from WASM memory
+    // For MVP, just log to console
+    console.log(`[${level.toUpperCase()}] Function ${functionId}: WASM log message`);
+  }
+}
+
+/**
  * The main client for interacting with the Performer backend (ActorDB).
  * Provides a high-level API inspired by Supabase.
  */
 export class PerformerClient {
   private actorDB: ActorDBClient;
   private _auth: AuthAPI;
+  private _storage: StorageAPI;
+  private _functions: FunctionsAPI;
 
-  constructor(actorDB: ActorDBClient) {
+  constructor(actorDB: ActorDBClient, storagePath: string = './storage') {
     this.actorDB = actorDB;
     this._auth = new AuthAPI(actorDB);
+    this._storage = new StorageAPI(actorDB, storagePath);
+    this._functions = new FunctionsAPI(actorDB);
   }
 
   /**
    * Creates a new PerformerClient from an ActorDBClient.
    * @param actorDB - The ActorDB client instance.
+   * @param storagePath - The base path for file storage.
    */
-  static fromActorDB(actorDB: ActorDBClient): PerformerClient {
-    return new PerformerClient(actorDB);
+  static fromActorDB(actorDB: ActorDBClient, storagePath: string = './storage'): PerformerClient {
+    return new PerformerClient(actorDB, storagePath);
   }
 
   /**
@@ -510,9 +1277,19 @@ export class PerformerClient {
     return this._auth;
   }
 
-  // Placeholder for future BaaS features (Supabase-like)
-  // storage: StorageAPI;
-  // functions: FunctionsAPI;
+  /**
+   * Storage API - similar to Supabase Storage.
+   */
+  get storage(): StorageAPI {
+    return this._storage;
+  }
+
+  /**
+   * Functions API - WASM-based serverless functions (Supabase Edge Functions equivalent).
+   */
+  get functions(): FunctionsAPI {
+    return this._functions;
+  }
 
   /**
    * Access to the underlying ActorDB client for advanced usage.

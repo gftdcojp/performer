@@ -61,7 +61,7 @@ export function quickStart(baseURL: string, token?: string) {
 /**
  * Quick setup function for PerformerClient (Supabase-like interface)
  */
-export function quickStartPerformer(baseURL: string, token?: string) {
+export function quickStartPerformer(baseURL: string, token?: string, storagePath: string = './storage') {
   const config = {
     ...defaultConfig,
     baseURL,
@@ -69,7 +69,7 @@ export function quickStartPerformer(baseURL: string, token?: string) {
   };
 
   const actorDB = createClient(config);
-  const performer = PerformerClient.fromActorDB(actorDB);
+  const performer = PerformerClient.fromActorDB(actorDB, storagePath);
 
   return {
     actorDB,
@@ -110,13 +110,40 @@ export function quickStartPerformer(baseURL: string, token?: string) {
  *   console.log('User signed up:', authData.user.email);
  * }
  *
- * // Query with Supabase-like syntax
+ * // Database queries
  * const users = await performer
  *   .from('user_profiles')
  *   .select('name,email')
  *   .eq('active', true)
  *   .limit(10);
  *
- * console.log(users);
+ * // File storage
+ * const { data: uploadData, error: uploadError } = await performer.storage
+ *   .from('avatars')
+ *   .upload('user-123.jpg', file, { contentType: 'image/jpeg' });
+ *
+ * if (uploadData) {
+ *   console.log('File uploaded:', uploadData.path);
+ * }
+ *
+ * // Get public URL
+ * const { data: urlData } = performer.storage
+ *   .from('avatars')
+ *   .getPublicUrl('user-123.jpg');
+ *
+ * console.log('Public URL:', urlData.publicUrl);
+ *
+ * // Deploy and invoke WASM functions
+ * const { data: funcData } = await performer.functions.deploy(
+ *   'hello-world',
+ *   wasmBytes,
+ *   {
+ *     description: 'Hello World WASM function',
+ *     triggers: [{ type: 'http', config: { method: 'GET', path: '/api/hello' } }]
+ *   }
+ * );
+ *
+ * const { data: result } = await performer.functions.invoke('hello-world', { name: 'World' });
+ * console.log('Function result:', result);
  * ```
  */

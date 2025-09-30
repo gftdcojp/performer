@@ -77,6 +77,14 @@ class PerformerClientTest {
       console.log('\n🔐 Test 6: Authentication API');
       await this.testAuthentication();
 
+      // Test 7: Storage API
+      console.log('\n📦 Test 7: Storage API');
+      await this.testStorageAPI();
+
+      // Test 8: Functions API
+      console.log('\n⚡ Test 8: Functions API');
+      await this.testFunctionsAPI();
+
       console.log('\n✅ All PerformerClient tests passed!');
 
     } catch (error) {
@@ -277,6 +285,189 @@ class PerformerClientTest {
 
     // Cleanup
     unsubscribe();
+  }
+
+  async testStorageAPI() {
+    // Test bucket creation
+    const { data: bucketData, error: bucketError } = await this.client.storage.createBucket('test-bucket');
+    console.log('  ✅ Create bucket result:', bucketData);
+
+    if (bucketError || !bucketData) {
+      throw new Error('Bucket creation failed');
+    }
+
+    if (bucketData.name !== 'test-bucket') {
+      throw new Error('Bucket name not set correctly');
+    }
+
+    // Test bucket listing
+    const { data: bucketsData, error: bucketsError } = await this.client.storage.listBuckets();
+    console.log('  ✅ List buckets result:', bucketsData);
+
+    if (bucketsError || !bucketsData) {
+      throw new Error('Bucket listing failed');
+    }
+
+    // Test file upload
+    const fileContent = 'Hello, World!';
+    const { data: uploadData, error: uploadError } = await this.client.storage
+      .from('test-bucket')
+      .upload('test.txt', fileContent, { contentType: 'text/plain' });
+
+    console.log('  ✅ Upload file result:', uploadData);
+
+    if (uploadError || !uploadData) {
+      throw new Error('File upload failed');
+    }
+
+    if (!uploadData.path.includes('test.txt')) {
+      throw new Error('Upload path not set correctly');
+    }
+
+    // Test file download
+    const { data: downloadData, error: downloadError } = await this.client.storage
+      .from('test-bucket')
+      .download('test.txt');
+
+    console.log('  ✅ Download file result:', downloadData ? 'success' : 'failed');
+
+    if (downloadError || !downloadData) {
+      throw new Error('File download failed');
+    }
+
+    // Test file listing
+    const { data: listData, error: listError } = await this.client.storage
+      .from('test-bucket')
+      .list();
+
+    console.log('  ✅ List files result:', listData);
+
+    if (listError || !listData) {
+      throw new Error('File listing failed');
+    }
+
+    // Test public URL generation
+    const { data: urlData, error: urlError } = this.client.storage
+      .from('test-bucket')
+      .getPublicUrl('test.txt');
+
+    console.log('  ✅ Get public URL result:', urlData);
+
+    if (urlError || !urlData) {
+      throw new Error('Public URL generation failed');
+    }
+
+    if (!urlData.publicUrl.includes('test-bucket/test.txt')) {
+      throw new Error('Public URL not generated correctly');
+    }
+
+    // Test signed URL creation
+    const { data: signedUrlData, error: signedUrlError } = await this.client.storage
+      .from('test-bucket')
+      .createSignedUrl('test.txt', { expiresIn: 3600 });
+
+    console.log('  ✅ Create signed URL result:', signedUrlData);
+
+    if (signedUrlError || !signedUrlData) {
+      throw new Error('Signed URL creation failed');
+    }
+
+    if (!signedUrlData.signedUrl.includes('signed/')) {
+      throw new Error('Signed URL not generated correctly');
+    }
+
+    // Test file deletion
+    const { data: deleteData, error: deleteError } = await this.client.storage
+      .from('test-bucket')
+      .remove(['test.txt']);
+
+    console.log('  ✅ Delete file result:', deleteData);
+
+    if (deleteError || !deleteData) {
+      throw new Error('File deletion failed');
+    }
+
+    if (!deleteData.message.includes('deleted')) {
+      throw new Error('Delete message not correct');
+    }
+  }
+
+  async testFunctionsAPI() {
+    // Test function deployment
+    const mockWasmBytes = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0]); // Minimal WASM header
+    const { data: deployData, error: deployError } = await this.client.functions.deploy(
+      'test-function',
+      mockWasmBytes,
+      {
+        description: 'Test WASM function',
+        version: '1.0.0',
+        triggers: [{
+          type: 'http',
+          config: { method: 'POST', path: '/api/test' },
+        }],
+        permissions: ['read', 'write'],
+      }
+    );
+
+    console.log('  ✅ Deploy function result:', deployData);
+
+    if (deployError || !deployData) {
+      throw new Error('Function deployment failed');
+    }
+
+    if (deployData.name !== 'test-function') {
+      throw new Error('Function name not set correctly');
+    }
+
+    if (deployData.runtime !== 'wasm') {
+      throw new Error('Function runtime not set correctly');
+    }
+
+    // Test function invocation
+    const { data: invokeData, error: invokeError, invocationId } = await this.client.functions.invoke(
+      'test-function',
+      { message: 'Hello from test' },
+      { timeout: 5000 }
+    );
+
+    console.log('  ✅ Invoke function result:', invokeData, 'invocationId:', invocationId);
+
+    if (invokeError) {
+      throw new Error('Function invocation failed');
+    }
+
+    if (!invocationId) {
+      throw new Error('Invocation ID not returned');
+    }
+
+    // Test function listing
+    const { data: listData, error: listError } = await this.client.functions.list();
+
+    console.log('  ✅ List functions result:', listData);
+
+    if (listError || !listData) {
+      throw new Error('Function listing failed');
+    }
+
+    // Test function logs
+    const { data: logsData, error: logsError } = await this.client.functions.getLogs('test-function-id', { limit: 10 });
+
+    console.log('  ✅ Get function logs result:', logsData);
+
+    if (logsError || !logsData) {
+      throw new Error('Function logs retrieval failed');
+    }
+
+    // Test function deletion
+    if (deployData.id) {
+      const { error: deleteError } = await this.client.functions.delete(deployData.id);
+
+      console.log('  ✅ Delete function result:', deleteError ? 'error' : 'success');
+
+      if (deleteError) {
+        throw new Error('Function deletion failed');
+      }
+    }
   }
 }
 
