@@ -2,6 +2,7 @@
 // Merkle DAG: test -> business-actor
 
 import { Effect } from "effect"
+import { vi } from "vitest"
 import { ActorCoordinator, ActorFactory, ActorRegistryImpl, ActorSystemManager } from "../src/actor/business-actor"
 import { ActorConfig, ActorState } from "../src/actor/types"
 
@@ -114,7 +115,7 @@ describe("Business Actor Implementation", () => {
     })
 
     test("should register and get actors", async () => {
-      const mockActor = { id: "mock", execute: jest.fn(), getState: jest.fn(), subscribe: jest.fn() }
+      const mockActor = { id: "mock", execute: vi.fn(), getState: vi.fn(), subscribe: vi.fn() }
 
       await Effect.runPromise(registry.register("test-id", mockActor))
 
@@ -132,8 +133,8 @@ describe("Business Actor Implementation", () => {
     })
 
     test("should list registered actors", async () => {
-      const mockActor1 = { id: "mock1", execute: jest.fn(), getState: jest.fn(), subscribe: jest.fn() }
-      const mockActor2 = { id: "mock2", execute: jest.fn(), getState: jest.fn(), subscribe: jest.fn() }
+      const mockActor1 = { id: "mock1", execute: vi.fn(), getState: vi.fn(), subscribe: vi.fn() }
+      const mockActor2 = { id: "mock2", execute: vi.fn(), getState: vi.fn(), subscribe: vi.fn() }
 
       await Effect.runPromise(registry.register("test-1", mockActor1))
       await Effect.runPromise(registry.register("test-2", mockActor2))
@@ -147,7 +148,7 @@ describe("Business Actor Implementation", () => {
     })
 
     test("should unregister actors", async () => {
-      const mockActor = { id: "mock", execute: jest.fn(), getState: jest.fn(), subscribe: jest.fn() }
+      const mockActor = { id: "mock", execute: vi.fn(), getState: vi.fn(), subscribe: vi.fn() }
 
       await Effect.runPromise(registry.register("test-id", mockActor))
 
@@ -163,8 +164,8 @@ describe("Business Actor Implementation", () => {
     })
 
     test("should clear all actors", async () => {
-      const mockActor1 = { id: "mock1", execute: jest.fn(), getState: jest.fn(), subscribe: jest.fn() }
-      const mockActor2 = { id: "mock2", execute: jest.fn(), getState: jest.fn(), subscribe: jest.fn() }
+      const mockActor1 = { id: "mock1", execute: vi.fn(), getState: vi.fn(), subscribe: vi.fn() }
+      const mockActor2 = { id: "mock2", execute: vi.fn(), getState: vi.fn(), subscribe: vi.fn() }
 
       await Effect.runPromise(registry.register("test-1", mockActor1))
       await Effect.runPromise(registry.register("test-2", mockActor2))

@@ -182,11 +182,12 @@ export class ActorSystemImpl implements ActorSystem {
   }
 
   shutdown(): Effect.Effect<void, never, never> {
+    const self = this
     return Effect.gen(function* () {
-      for (const [id, actor] of this.actors) {
+      for (const [id, actor] of self.actors) {
         yield* Fiber.interrupt(actor.fiber)
       }
-      this.actors.clear()
+      self.actors.clear()
     })
   }
 }
