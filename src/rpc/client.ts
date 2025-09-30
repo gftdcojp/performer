@@ -1,70 +1,206 @@
-// Merkle DAG: /rpc/client
-// RPCインターフェースの具体的な実装。ActorDBと通信する責務を持つ。
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import {
+  Event,
+  WriteResult,
+  QueryRequest,
+  QueryResponse,
+  ClientConfig,
+  HealthStatus,
+  Metrics,
+  ActorDBError,
+} from './types';
 
-import { Effect, Layer } from "effect";
-import { RpcService } from "../processes/user-onboarding.process";
+export class ActorDBClient {
+  private http: AxiosInstance;
 
-// ここでActorDBのRPCクライアントを利用する
-// import { ActorDBHttpClient } from './actordb-client';
-// const client = new ActorDBHttpClient({ host: "localhost", port: 9090 });
+  constructor(config: ClientConfig) {
+    this.http = axios.create({
+      baseURL: config.baseURL,
+      timeout: config.timeout || 30000,
+      headers: {
+        'Content-Type': 'application/json',
+        ...config.headers,
+      },
+    });
 
-/**
- * RpcServiceの「Live」な実装を提供するEffectのLayer。
- * これが本番環境で使われるRPCクライアントの実体です。
- */
-export const RpcServiceLive = Layer.succeed(
-  RpcService,
-  RpcService.of({
-    /**
-     * ユーザー名が利用可能かチェックするRPCの実装。
-     * Effect.tryPromiseを使い、fetchベースの非同期処理をEffectに変換します。
-     */
-    checkUsername: (username) =>
-      Effect.tryPromise({
-        try: async () => {
-          // --- ここが実際のActorDBとの通信部分 ---
-          // 例: ActorDBの特定のプロジェクションを叩く、など
-          // const response = await client.executeQuery('check_username', { username });
-          // return response as { available: boolean };
+    // Set authorization token if provided
+    if (config.token) {
+      this.setToken(config.token);
+    }
 
-          // 以下はモック実装（実際のActorDB連携時は置き換え）
-          console.log(`[RPC Client] Calling ActorDB to check username: ${username}`);
-          await new Promise(resolve => setTimeout(resolve, 500)); // ネットワーク遅延のシミュレーション
-
-          // ビジネスルール: "admin" は予約済み、"test" は無効なフォーマット
-          if (username === "admin") {
-            throw new Error("UsernameTakenError");
-          }
-          if (username.length < 3) {
-            throw new Error("InvalidFormatError");
-          }
-
-          // 成功時は利用可能と返す
-          return { available: true };
-        },
-        // ActorDBからのエラーを、ビジネスプロセスが理解できるエラー型に変換する
-        catch: (error: any) => {
-          if (error.message === "UsernameTakenError") {
-            return { _tag: "UsernameTakenError" } as const;
-          }
-          if (error.message === "InvalidFormatError") {
-            return { _tag: "InvalidFormatError" } as const;
-          }
-          // 想定外のエラーは汎用エラーとして扱う
-          return { _tag: "UnknownRpcError" } as const;
+    // Add response interceptor for error handling
+    this.http.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response) {
+          throw new ActorDBError(
+            error.response.data?.error || error.message,
+            error.response.status,
+            error.response.data
+          );
         }
-      }),
-  })
-);
+        throw new ActorDBError(error.message);
+      }
+    );
+  }
 
-/**
- * テスト用のモック実装
- * 実際のネットワーク通信を行わず、即座に成功を返す
- */
-export const RpcServiceMock = Layer.succeed(
-  RpcService,
-  RpcService.of({
-    checkUsername: (username) =>
-      Effect.succeed({ available: true }),
-  })
-);
+  /**
+   * Set authentication token
+   */
+  setToken(token: string): void {
+    this.http.defaults.headers.common['Authorization'] = token;
+  }
+
+  /**
+   * Remove authentication token
+   */
+  clearToken(): void {
+    delete this.http.defaults.headers.common['Authorization'];
+  }
+
+  /**
+   * Write an event to an actor's event stream
+   */
+  async writeEvent(event: Omit<Event, 'timestamp'>): Promise<WriteResult> {
+    const response = await this.http.post<WriteResult>('/events', {
+      ...event,
+      timestamp: new Date().toISOString(),
+    });
+    return response.data;
+  }
+
+  /**
+   * Write multiple events in batch
+   */
+  async writeEventsBatch(events: Omit<Event, 'timestamp'>[]): Promise<WriteResult[]> {
+    const eventsWithTimestamp = events.map(event => ({
+      ...event,
+      timestamp: new Date().toISOString(),
+    }));
+
+    const response = await this.http.post<WriteResult[]>('/events/batch', {
+      events: eventsWithTimestamp,
+    });
+    return response.data;
+  }
+
+  /**
+   * Read events for an aggregate
+   */
+  async readEvents(aggregateId: string, fromSequence: number = 1): Promise<Event[]> {
+    const response = await this.http.get<Event[]>('/events', {
+      params: {
+        aggregate_id: aggregateId,
+        from_sequence: fromSequence,
+      },
+    });
+    return response.data;
+  }
+
+  /**
+   * Execute a query
+   */
+  async query(request: QueryRequest): Promise<QueryResponse> {
+    const response = await this.http.post<QueryResponse>('/query', request);
+    return response.data;
+  }
+
+  /**
+   * Execute a SQL query (convenience method)
+   */
+  async executeSQL(sql: string, parameters?: Record<string, any>): Promise<QueryResponse> {
+    return this.query({ sql, parameters });
+  }
+
+  /**
+   * Get health status of all services
+   */
+  async getHealth(): Promise<HealthStatus[]> {
+    const response = await this.http.get<{ services: HealthStatus[] }>('/health');
+    return response.data.services;
+  }
+
+  /**
+   * Get system metrics
+   */
+  async getMetrics(): Promise<Metrics> {
+    const response = await this.http.get<Metrics>('/metrics');
+    return response.data;
+  }
+
+  /**
+   * Create a new actor aggregate
+   */
+  async createAggregate(aggregateId: string, aggregateType: string): Promise<void> {
+    await this.http.post('/aggregates', {
+      aggregate_id: aggregateId,
+      aggregate_type: aggregateType,
+    });
+  }
+
+  /**
+   * Get aggregate state
+   */
+  async getAggregateState(aggregateId: string): Promise<any> {
+    const response = await this.http.get(`/aggregates/${aggregateId}/state`);
+    return response.data;
+  }
+
+  /**
+   * Register a projection
+   */
+  async registerProjection(projection: any): Promise<void> {
+    await this.http.post('/projections', projection);
+  }
+
+  /**
+   * List projections
+   */
+  async listProjections(): Promise<string[]> {
+    const response = await this.http.get<string[]>('/projections');
+    return response.data;
+  }
+
+  /**
+   * Get projection state
+   */
+  async getProjectionState(projectionName: string): Promise<any> {
+    const response = await this.http.get(`/projections/${projectionName}/state`);
+    return response.data;
+  }
+
+  /**
+   * Validate token (security gateway)
+   */
+  async validateToken(token?: string): Promise<{ valid: boolean; context?: any }> {
+    const headers = token ? { Authorization: token } : undefined;
+    const response = await this.http.post('/security/validate', {}, { headers });
+    return response.data;
+  }
+
+  /**
+   * Raw HTTP request (for advanced usage)
+   */
+  async request<T = any>(config: {
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    url: string;
+    data?: any;
+    params?: Record<string, any>;
+    headers?: Record<string, string>;
+  }): Promise<AxiosResponse<T>> {
+    return this.http.request<T>(config);
+  }
+}
+
+// Factory function for easy client creation
+export function createClient(config: ClientConfig): ActorDBClient {
+  return new ActorDBClient(config);
+}
+
+// Default client configuration
+export const defaultConfig: Partial<ClientConfig> = {
+  timeout: 30000,
+  headers: {
+    'User-Agent': 'ActorDB-Client/1.0.0',
+  },
+};
