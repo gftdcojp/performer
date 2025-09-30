@@ -1,6 +1,18 @@
 // Merkle DAG: /processes/user-onboarding
 // この単一ファイルが、ユーザーオンボーディングのビジネスプロセス全体をカプセル化します。
-// BPMN図にもマッピング可能です。
+// BPMN図にもマッピング可能です.
+
+// Process Metadata
+export const processMetadata = {
+  id: 'user-onboarding',
+  name: 'User Onboarding Process',
+  type: 'single' as const, // 'single' | 'saga'
+  version: '1.0.0',
+  description: 'Simple user onboarding with username validation',
+  author: 'Performer Framework',
+  created: '2025-01-30',
+  tags: ['onboarding', 'user', 'validation']
+};
 
 import { Effect, Context, Layer, pipe } from "effect";
 import { createMachine, assign, interpret, type Actor } from "xstate";

@@ -1,6 +1,18 @@
-// Merkle DAG: /sagas/complete-user-onboarding
+// Merkle DAG: /processes/complete-user-onboarding
 // Saga Pattern: Orchestrates multiple business processes into a complete user onboarding workflow
 // This demonstrates how multiple .process.ts files can be composed into a larger business transaction
+
+// Process Metadata
+export const processMetadata = {
+  id: 'complete-user-onboarding',
+  name: 'Complete User Onboarding Saga',
+  type: 'saga' as const, // 'single' | 'saga'
+  version: '1.0.0',
+  description: 'Multi-step user onboarding saga with compensation transactions',
+  author: 'Performer Framework',
+  created: '2025-01-30',
+  tags: ['saga', 'onboarding', 'user', 'compensation', 'orchestration']
+};
 
 import { Effect, Context, Layer, pipe } from "effect";
 import { createMachine, assign, interpret, type Actor } from "xstate";
