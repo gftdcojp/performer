@@ -4,6 +4,9 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   build: {
     target: 'esnext',
+    rollupOptions: {
+      external: ['ws', 'uuid'], // Node.js libraries, not for browser
+    },
   },
   optimizeDeps: {
     exclude: ['@microsoft/fast-element'],

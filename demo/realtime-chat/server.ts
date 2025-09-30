@@ -3,7 +3,7 @@
 // Demonstrates Rivet-like real-time synchronization with Performer
 
 import * as http from 'http'
-import { WebSocketServer } from '../../src/realtime/websocket-manager'
+import { WebSocketServer } from '../../src/realtime/websocket-server'
 import { SSEServer, createSSEServer, createSSETransport } from '../../src/realtime/sse-manager'
 import { RealtimeEventStore, CRDTStateManager } from '../../src/realtime/event-store'
 import { createRealtimeService } from '../../src/realtime/realtime-service'

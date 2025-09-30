@@ -46,10 +46,10 @@ export {
 } from './event-store'
 
 // WebSocket management
-export {
-  WebSocketManager,
-  WebSocketServer
-} from './websocket-manager'
+export { WebSocketManager } from './websocket-manager'
+
+// Node.js only WebSocket server
+export { WebSocketServer } from './websocket-server'
 
 // Snapshot and replay
 export {
