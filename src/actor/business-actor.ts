@@ -189,34 +189,39 @@ export class ActorRegistryImpl {
   private actors = new Map<string, any>() // ActorRef type
 
   register(id: string, actorRef: any): Effect.Effect<void, never, never> {
+    const self = this
     return Effect.gen(function* () {
-      this.actors.set(id, actorRef)
+      self.actors.set(id, actorRef)
       return undefined
     })
   }
 
   get(id: string): Effect.Effect<any | undefined, never, never> {
+    const self = this
     return Effect.gen(function* () {
-    return this.actors.get(id)
+      return self.actors.get(id)
     })
   }
 
   list(): Effect.Effect<readonly string[], never, never> {
+    const self = this
     return Effect.gen(function* () {
-    return Array.from(this.actors.keys())
+      return Array.from(self.actors.keys())
     })
   }
 
   unregister(id: string): Effect.Effect<void, never, never> {
+    const self = this
     return Effect.gen(function* () {
-    this.actors.delete(id)
+      self.actors.delete(id)
       return undefined
     })
   }
 
   clear(): Effect.Effect<void, never, never> {
+    const self = this
     return Effect.gen(function* () {
-    this.actors.clear()
+      self.actors.clear()
       return undefined
     })
   }
@@ -261,8 +266,9 @@ export class ActorSystemManager {
   private system: any = null // ActorSystem type
 
   initialize(): Effect.Effect<void, Error, never> {
+    const self = this
     return Effect.gen(function* () {
-      this.system = yield* ActorSystemUtils.make("main-actor-system")
+      self.system = yield* ActorSystemUtils.make("main-actor-system")
       return undefined
     })
   }
@@ -272,10 +278,11 @@ export class ActorSystemManager {
   }
 
   shutdown(): Effect.Effect<void, never, never> {
+    const self = this
     return Effect.gen(function* () {
-      if (this.system) {
-        yield* this.system.shutdown()
-        this.system = null
+      if (self.system) {
+        yield* self.system.shutdown()
+        self.system = null
       }
       return undefined
     })

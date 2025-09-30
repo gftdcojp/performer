@@ -69,11 +69,11 @@ try {
   console.log(`   - Name: ${demoPkg.name}`);
   console.log(`   - Dependencies: ${Object.keys(demoPkg.dependencies || {}).length} packages`);
 
-  // Check if demo depends on peformer
-  if (demoPkg.dependencies && demoPkg.dependencies.peformer) {
-    console.log('   ✅ Demo correctly depends on peformer');
+  // Check if demo depends on performer
+  if (demoPkg.dependencies && demoPkg.dependencies.performer) {
+    console.log('   ✅ Demo correctly depends on performer');
   } else {
-    console.log('   ❌ Demo does not depend on peformer');
+    console.log('   ❌ Demo does not depend on performer');
   }
 
 } catch (error) {

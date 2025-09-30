@@ -10,7 +10,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "peformer": "workspace:*",
+    "performer": "workspace:*",
     "effect": "^3.0.0",
     "@gftdcojp/effect-actor": "github:gftdcojp/effect-actor",
     "@microsoft/fast-element": "^2.0.0-beta.26",

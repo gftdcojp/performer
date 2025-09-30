@@ -81,7 +81,7 @@ importers:
       effect:
         specifier: ^3.0.0
         version: 3.18.0
-      peformer:
+      performer:
         specifier: workspace:*
         version: link:..
 

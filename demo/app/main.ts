@@ -8,7 +8,7 @@ import {
   initializePerformer,
   ProcessRegistry,
   type ProcessInstance
-} from 'peformer';
+} from 'performer';
 
 // Application initialization
 async function initApp() {

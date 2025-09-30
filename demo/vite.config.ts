@@ -5,8 +5,8 @@ import { resolve } from 'path'
 export default defineConfig({
   resolve: {
     alias: {
-      'peformer': resolve(__dirname, '../src'),
-      'peformer/*': resolve(__dirname, '../src/*')
+      'performer': resolve(__dirname, '../src'),
+      'performer/*': resolve(__dirname, '../src/*')
     }
   },
   build: {
@@ -20,6 +20,6 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['peformer']
+    include: ['performer']
   }
 })

@@ -20,8 +20,8 @@
     "types": ["vitest/globals"],
     "baseUrl": ".",
     "paths": {
-      "peformer": ["../src"],
-      "peformer/*": ["../src/*"]
+      "performer": ["../src"],
+      "performer/*": ["../src/*"]
     }
   },
   "include": [
