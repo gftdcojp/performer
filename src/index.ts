@@ -1,29 +1,23 @@
-// Application Entry Point
+// Performer Framework Public API
 // Merkle DAG: root-node
 
-import { actorCoordinator } from "./actor"
-import { componentRegistry, initializeUI } from "./ui"
-import { computeEngine } from "./wasm"
-import { createRPCClient } from "./rpc"
+// Export business processes
+export { userOnboardingProcess } from "./processes/user-onboarding.process";
 
-// Initialize application
-export const initializeApp = async () => {
-  console.log("Initializing Performer application...")
+// Export services (for advanced usage)
+export { RpcService, RpcServiceLive, RpcServiceMock } from "./rpc/client";
+export { CapabilityService, CapabilityServiceLive, PermissionDeniedError } from "./capabilities/checker";
 
-  // Initialize UI
-  initializeUI()
+// Export types (for TypeScript users)
+export type { RpcService, CapabilityService } from "./processes/user-onboarding";
 
-  // Setup RPC connection
-  const rpcClient = createRPCClient({
-    host: "localhost",
-    port: 9090,
-    secure: false,
-  })
-
-  console.log("Application initialized!")
-}
-
-// Start application
-if (typeof window !== 'undefined') {
-  initializeApp()
-}
+// Framework initialization helper
+export const initializePerformer = () => {
+  console.log("🎭 Performer framework initialized");
+  return {
+    version: "0.1.0",
+    processes: {
+      userOnboarding: userOnboardingProcess,
+    },
+  };
+};
