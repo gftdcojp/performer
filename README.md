@@ -1,302 +1,302 @@
 # Performer
 
-Web Framework CLI with EffectTS v3 + XState Actor + Web Components + WASM
+**プロセス集約型Webフレームワーク** - 単一ファイルでビジネスプロセス全体を定義・実行
 
-Performer is a comprehensive web framework that combines:
+Performerは、**1つのTypeScriptファイル = 1つのビジネスプロセス**という革新的なアプローチで、複雑なビジネスロジックを宣言的・集約的に管理できるWebフレームワークです。
 
-- **EffectTS v3** - Functional programming and effect management for business logic
-- **XState Actor** - State management and actor-based architecture
-- **Web Components** - Native web component standards for UI
-- **WASM** - High-performance computations
-- **RPC** - Communication layer integrated with ActorDB
+## 🌟 特徴
 
-## Features
+### 🎯 プロセス集約アーキテクチャ
+- **単一ファイル = 1ビジネスプロセス** - 型定義・ロジック・UI・状態遷移を1箇所で管理
+- **宣言的プロセス定義** - コード自体が設計図となるアーキテクチャ
+- **BPMN互換マッピング** - XStateの状態機械をBPMN図に変換可能
 
-### 🔧 Framework Components
+### 🔧 コアテクノロジー
+- **Effect-TS** - 関数型プログラミングによる副作用管理と型安全性
+- **XState Actor** - ステートマシンによる堅牢な状態管理
+- **Web Components** - 標準ベースのUIコンポーネント
+- **ActorDB** - イベントソーシングによるデータ永続化
+- **Sagaパターン** - 分散トランザクションのオーケストレーション
 
-- **Domain Layer**: EffectTS-powered business logic with type safety
-- **Actor Layer**: XState-based state management and actor coordination
-- **UI Layer**: Web Components with FAST Element foundation
-- **WASM Layer**: Performance-critical computations
-- **RPC Layer**: ActorDB integration for event sourcing and CQRS
+### 🚀 高度な機能
+- **Dynamic Process Loading** - プロセス名 + Hashによる実行時動的読み込み
+- **Capabilityベース認可** - きめ細やかな権限管理
+- **Sagaオーケストレーション** - 複数プロセスの協調実行と補償トランザクション
+- **プロセスレジストリ** - 実行時のプロセス発見・管理
+- **CLIツール群** - プロジェクト生成・ビルド・テスト
 
-### 🛠️ CLI Tools
-
-- Project initialization with templates
-- Component generation (domain, actor, UI, WASM)
-- Build system with Vite
-- Development server
-- Testing framework integration
-
-## Quick Start
-
-### Installation
+## 📦 インストール
 
 ```bash
-# Clone the repository
+# リポジトリをクローン
 git clone https://github.com/com-junkawasaki/performer.git
 cd performer
 
-# Install dependencies
-npm install
+# 依存関係をインストール
+pnpm install
 
-# Build the CLI
-npm run build:cli
+# CLIをビルド
+pnpm run build:cli
 
-# Link globally (optional)
+# グローバルにリンク（オプション）
 npm link
 ```
 
-### Create New Project
+## 🎯 クイックスタート
+
+### 1. 新規プロジェクト作成
 
 ```bash
-# Create a new project
+# Performerプロジェクトを作成
 performer init my-app
 
-# Or use a specific template
-performer init my-app --template fullstack
-
 cd my-app
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
-### Generate Components
-
-```bash
-# Generate business domain
-performer generate domain user
-
-# Generate actor
-performer generate actor user-manager
-
-# Generate UI component
-performer generate ui user-profile
-
-# Generate WASM computation
-performer generate wasm data-processor
-```
-
-## Project Structure
-
-```
-my-performer-app/
-├── src/
-│   ├── domain/          # Business logic (EffectTS)
-│   ├── actor/           # State management (XState)
-│   ├── ui/              # Web Components
-│   ├── wasm/            # WASM computations
-│   ├── rpc/             # ActorDB communication
-│   └── index.ts         # Application entry point
-├── wasm/                # WASM source files
-├── dist/                # Build output
-├── package.json
-├── performer.json       # Framework configuration
-└── vite.config.ts
-```
-
-## Architecture
-
-### Process Network Graph Model
-
-Performer uses a process network graph model based on Merkle DAGs for:
-
-- **Dependency Management**: Clear component relationships
-- **Build Optimization**: Topological execution order
-- **Error Isolation**: Component-level failure containment
-- **Scalability**: Independent component scaling
-
-### Execution Flow
-
-1. **Domain** → Business logic and effects
-2. **Actor** → State management coordination
-3. **UI** → Web component rendering
-4. **WASM** → Performance computations
-5. **RPC** → External communication
-
-## Configuration
-
-### performer.json
-
-```json
-{
-  "name": "my-app",
-  "version": "0.1.0",
-  "framework": {
-    "version": "0.1.0",
-    "features": {
-      "effect-ts": true,
-      "xstate": true,
-      "web-components": true,
-      "wasm": true,
-      "rpc": true
-    }
-  },
-  "actorDb": {
-    "host": "localhost",
-    "port": 9090,
-    "secure": false
-  },
-  "build": {
-    "outDir": "dist",
-    "wasm": {
-      "enabled": true,
-      "modules": ["data-processor"]
-    }
-  }
-}
-```
-
-## Development
-
-### Building
-
-```bash
-# Build for production
-npm run build
-
-# Build CLI only
-npm run build:cli
-
-# Watch mode
-npm run build -- --watch
-```
-
-### Testing
-
-```bash
-# Run tests
-npm run test
-
-# Watch mode
-npm run test -- --watch
-
-# With coverage
-npm run test -- --coverage
-```
-
-### Serving
-
-```bash
-# Start development server
-npm run serve
-
-# Custom port
-npm run serve -- --port 3001
-
-# Open browser automatically
-npm run serve -- --open
-```
-
-## Examples
-
-### Basic Domain Logic
+### 2. プロセス定義
 
 ```typescript
-// src/domain/user.ts
-import * as T from "@effect-ts/core/Effect"
-import { ActorDBService } from "./types"
+// src/processes/user-onboarding.process.ts
+export const processMetadata = {
+  id: 'user-onboarding',
+  name: 'User Onboarding Process',
+  type: 'single' as const,
+  version: '1.0.0',
+  hash: 'a1b2c3d4'
+};
 
-export interface User {
-  readonly id: string
-  readonly name: string
-  readonly email: string
-  readonly createdAt: Date
-}
-
-export const createUser = (userData: Omit<User, 'id' | 'createdAt'>) =>
-  T.accessServiceM(ActorDBService)((db) =>
-    db.writeEvent({
-      entityId: crypto.randomUUID(),
-      eventType: 'user_created',
-      payload: userData,
-      timestamp: new Date(),
-      version: 1,
-    })
-  )
+// Effect-TSによるビジネスロジック
+// XStateによる状態機械定義
+// Web ComponentsによるUI定義
+// すべてこの1ファイルに集約
 ```
 
-### Actor State Management
+### 3. 動的プロセス実行
+
+```bash
+# プロセス名 + Hashで動的読み込み
+open "http://localhost:5173/?process=user-onboarding&hash=a1b2c3d4"
+
+# Sagaプロセス実行
+open "http://localhost:5173/?process=complete-user-onboarding&hash=e5f6g7h8"
+```
+
+## 🏗️ アーキテクチャ
+
+### プロセス集約アーキテクチャ
+
+```
+src/processes/
+├── user-onboarding.process.ts        # 🔄 単一プロセス
+├── complete-user-onboarding.saga.ts  # 🎭 Sagaプロセス
+└── order-fulfillment.process.ts      # 📦 追加プロセス...
+```
+
+各プロセスファイルは：
+- **メタデータ** - ID, タイプ, バージョン, Hash
+- **Effect-TSロジック** - 型安全なビジネスロジック
+- **XStateマシン** - 状態遷移とBPMNマッピング
+- **Web Components** - プロセス固有のUI
+- **統合テスト** - プロセス全体の検証
+
+### Unified Process Registry
 
 ```typescript
-// src/actor/user-actor.ts
-import { createMachine } from "xstate"
+import { ProcessRegistry } from 'performer';
 
-export const userMachine = createMachine({
-  id: 'user',
-  initial: 'inactive',
+// プロセス名 + Hashで動的読み込み
+const process = await ProcessRegistry.loadByNameAndHash('user-onboarding', 'a1b2c3d4');
+process.bootstrap(container);
+```
+
+### Sagaオーケストレーション
+
+```typescript
+// 複数プロセスを協調実行
+// 失敗時は補償トランザクションでロールバック
+// ActorDBにSaga全体のイベントを永続化
+```
+
+## 📁 プロジェクト構造
+
+```
+performer-workspace/
+├── peformer/                    # 🎭 フレームワーク本体
+│   ├── src/processes/          # 📋 プロセスファイル集約
+│   ├── src/rpc/                # 📡 ActorDB通信
+│   ├── src/capabilities/       # 🔒 権限管理
+│   └── src/index.ts            # 🔌 フレームワークAPI
+│
+└── demo/                       # 🎯 デモアプリケーション
+    ├── app/main.ts             # 🚀 プロセス動的読み込み
+    ├── index.html
+    └── package.json
+```
+
+## 🎭 使用例
+
+### 単一プロセス定義
+
+```typescript
+// src/processes/user-onboarding.process.ts
+export const processMetadata = {
+  id: 'user-onboarding',
+  name: 'User Onboarding Process',
+  type: 'single',
+  hash: 'a1b2c3d4'
+};
+
+// Effect-TS: 型安全なAPI呼び出し
+const checkUsername = Effect.gen(function*() {
+  const result = yield* Effect.promise(() =>
+    fetch('/api/check-username').then(r => r.json())
+  );
+  return result.available;
+});
+
+// XState: BPMN互換の状態機械
+export const onboardingMachine = createMachine({
+  id: "userOnboarding",
   states: {
-    inactive: {
-      on: { ACTIVATE: 'active' }
-    },
-    active: {
-      on: { DEACTIVATE: 'inactive' }
-    }
+    enteringUsername: { /* BPMN: User Task */ },
+    checkingUsername: { /* BPMN: Service Task */ },
+    success: { /* BPMN: End Event */ }
   }
-})
-```
+});
 
-### Web Component
-
-```typescript
-// src/ui/user-profile.ts
-import { FASTElement, customElement, html } from "@microsoft/fast-element"
-
-@customElement("user-profile")
-export class UserProfile extends FASTElement {
-  @observable user: User | null = null
-
-  template = html<UserProfile>`
-    <div class="profile">
-      <h2>${x => x.user?.name}</h2>
-      <p>${x => x.user?.email}</p>
-    </div>
-  `
+// Web Components: プロセスUI
+@customElement("username-input-step")
+class UsernameInputStep extends FASTElement {
+  /* UI定義 */
 }
 ```
 
-## Integration with ActorDB
-
-Performer integrates seamlessly with [ActorDB](https://github.com/com-junkawasaki/dekigoto):
+### Sagaプロセス定義
 
 ```typescript
-import { ActorDBHttpClient } from "@/rpc/actordb-client"
+// src/processes/complete-user-onboarding.saga.ts
+export const processMetadata = {
+  id: 'complete-user-onboarding',
+  name: 'Complete User Onboarding Saga',
+  type: 'saga',
+  hash: 'e5f6g7h8'
+};
 
-const client = new ActorDBHttpClient({
-  host: "localhost",
-  port: 9090,
-  secure: false,
-  token: "your-jwt-token"
-})
+// 4つのサブプロセスをオーケストレーション:
+// 1. ユーザー作成
+// 2. メール検証送信
+// 3. ウェルカム通知
+// 4. ウェルカムメッセージ
+//
+// いずれかが失敗したら補償トランザクション実行
+```
 
-// Write events
+## 🔄 動的プロセス読み込み
+
+### プロセス名 + Hash指定
+
+```typescript
+// URLパラメータでプロセス指定
+?process=user-onboarding&hash=a1b2c3d4
+
+// プログラムから動的読み込み
+const process = await ProcessRegistry.loadByNameAndHash('user-onboarding', 'a1b2c3d4');
+```
+
+### Hash検証とキャッシュ
+
+- **Hash検証**: プロセス改ざんの検知
+- **自動キャッシュ**: 再読み込みのパフォーマンス最適化
+- **バージョン管理**: Hashによるプロセスバージョニング
+
+## 🧪 テスト
+
+```bash
+# ActorDB統合テスト
+pnpm run test:actordb
+
+# Saga統合テスト
+pnpm run test:saga
+
+# 動的プロセス読み込みテスト
+pnpm run test:dynamic
+
+# シミュレーター起動
+pnpm run simulator
+```
+
+## 🎨 BPMNマッピング
+
+```typescript
+// XStateマシンをBPMN JSONに変換
+const bpmnData = process.toBpmnJson();
+// {
+//   id: "userOnboarding",
+//   nodes: [
+//     { id: "enteringUsername", type: "userTask", description: "..." },
+//     { id: "checkingUsername", type: "serviceTask", description: "..." }
+//   ],
+//   edges: [/* シーケンスフロー */]
+// }
+```
+
+## 🔗 ActorDB統合
+
+```typescript
+// 自動イベント永続化
 await client.writeEvent({
   entityId: "user-123",
-  eventType: "user_updated",
+  eventType: "user_created",
   payload: { name: "John Doe" },
   timestamp: new Date(),
-  version: 2
-})
+  version: 1
+});
 
-// Query projections
-const userProfile = await client.getProjection("user_profiles")
+// プロジェクションクエリ
+const userStats = await client.getProjection("user_statistics");
 ```
 
-## Contributing
+## 📈 パフォーマンス特性
+
+- **ツリーシェイキング**: 未使用プロセスはバンドルから除外
+- **動的読み込み**: 必要なプロセスのみ実行時読み込み
+- **キャッシュ最適化**: Hashベースのキャッシュ管理
+- **WASM統合**: 高性能計算のオプション
+
+## 🤝 コントリビューション
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+3. Add tests for new features
+4. Submit a pull request
 
-## License
+## 📄 ライセンス
 
-Apache License 2.0 - see LICENSE file for details
+MIT License - see LICENSE file for details
 
-## Related Projects
+## 🔗 関連プロジェクト
 
-- [ActorDB](https://github.com/com-junkawasaki/dekigoto) - Event sourcing database
-- [Effect-TS](https://github.com/Effect-TS/core) - Functional programming library
-- [XState](https://github.com/statelyai/xstate) - State management
-- [FAST](https://github.com/microsoft/fast) - Web components framework
+- [ActorDB](https://github.com/com-junkawasaki/dekigoto) - イベントソーシングデータベース
+- [Effect-TS](https://effect.website) - 関数型プログラミングライブラリ
+- [XState](https://xstate.js.org) - ステートマネジメント
+- [FAST](https://fast.design) - Web Componentsフレームワーク
+
+## 🤝 コントリビューション
+
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new features
+4. Submit a pull request
+
+## 📄 ライセンス
+
+MIT License - see LICENSE file for details
+
+## 🔗 関連プロジェクト
+
+- [ActorDB](https://github.com/com-junkawasaki/dekigoto) - イベントソーシングデータベース
+- [Effect-TS](https://effect.website) - 関数型プログラミングライブラリ
+- [XState](https://xstate.js.org) - ステートマネジメント
+- [FAST](https://fast.design) - Web Componentsフレームワーク
