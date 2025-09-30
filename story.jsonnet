@@ -13,9 +13,9 @@
 
     build: {
       type: 'process',
-      deps: ['domain', 'actor', 'ui', 'wasm', 'rpc'],
+      deps: ['domain', 'actor', 'ui', 'wasm', 'rpc', 'realtime'],
       provides: ['compilation', 'bundling'],
-      description: 'Build system for TypeScript, WASM, and Web Components'
+      description: 'Build system for TypeScript, WASM, Web Components, and real-time modules'
     },
 
     // Business Logic Layer
@@ -58,20 +58,20 @@
       description: 'RPC communication layer for ActorDB integration'
     },
 
-    // Real-time Synchronization Layer (Rivet-like)
+    // Real-time Synchronization Layer (Rivet-like + SSE)
     realtime: {
-      type: 'websocket-eventsourcing',
+      type: 'websocket-sse-eventsourcing',
       deps: ['rpc', 'actor'],
-      provides: ['realtime-sync', 'event-broadcast', 'conflict-resolution'],
-      description: 'Real-time synchronization with WebSocket eventsourcing, actor state management, and CRDT-like conflict resolution'
+      provides: ['realtime-sync', 'event-broadcast', 'conflict-resolution', 'sse-streaming', 'dual-transport'],
+      description: 'Real-time synchronization with WebSocket/SSE dual transport, eventsourcing, actor state management, and CRDT-like conflict resolution'
     },
 
     // Quality Assurance
     test: {
       type: 'test-suite',
-      deps: ['domain', 'actor', 'ui', 'wasm', 'rpc'],
+      deps: ['domain', 'actor', 'ui', 'wasm', 'rpc', 'realtime'],
       provides: ['quality-assurance'],
-      description: 'Comprehensive test suite'
+      description: 'Comprehensive test suite including real-time synchronization tests'
     }
   },
 

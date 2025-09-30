@@ -1,8 +1,8 @@
 # Performer
 
-**次世代BaaSプラットフォーム** - WebAssemblyとイベントソーシングを活用した完全なBackend as a Service
+**次世代BaaSプラットフォーム** - WebAssembly + Rivet-like リアルタイム同期 + イベントソーシング
 
-Performerは、**Supabaseを凌駕する6つの主要コンポーネント**を備えた革新的なBaaSプラットフォームです。プロセス集約型アーキテクチャとイベントソーシングを組み合わせ、現代のWebアプリケーション開発における新たなパラダイムを提供します。
+Performerは、**Supabaseを凌駕する7つの主要コンポーネント**を備えた革新的なBaaSプラットフォームです。**Rivet に匹敵するリアルタイム同期機能**とプロセス集約型アーキテクチャを組み合わせ、現代のWebアプリケーション開発における新たなパラダイムを提供します。
 
 ## 🌟 特徴
 
@@ -12,7 +12,7 @@ Performerは、**Supabaseを凌駕する6つの主要コンポーネント**を�
 - **イベントソーシング統合** - すべての操作がイベントとして記録・分析可能
 - **WebAssemblyネイティブ** - 関数実行に高速なWASMランタイムを使用
 
-### 🔧 6つのBaaSコンポーネント
+### 🔧 7つのBaaSコンポーネント
 
 | 機能 | Supabase相当 | Performer実装 | 特徴 |
 |------|-------------|---------------|------|
@@ -20,7 +20,8 @@ Performerは、**Supabaseを凌駕する6つの主要コンポーネント**を�
 | **🔐 Authentication** | Supabase Auth | JWT認証 + RBAC + ActorDB Security | ゼロトラストセキュリティ |
 | **📦 Storage** | Supabase Storage | ファイル管理 + URL生成 + ActorDBメタデータ | メタデータ追跡 |
 | **⚡ Functions** | Supabase Edge Functions | WASMベースサーバーレス関数 | WebAssemblyネイティブ |
-| **🔄 Realtime** | Supabase Realtime | **Rivet-like リアルタイム同期** | **イベントソーシング + WebSocket + CRDT** |
+| **🔄 Realtime** | Supabase Realtime | **Rivet-like リアルタイム同期** | **WebSocket/SSE + イベントソーシング + CRDT** |
+| **🔥 Advanced Realtime** | - | **デュアルトランスポート + スナップショット** | **アクター状態管理 + 衝突解決** |
 | **📊 Analytics** | Supabase Analytics | 使用状況分析・パフォーマンス監視 | 包括的な監視 |
 
 ### 🚀 革新的な機能
@@ -30,9 +31,11 @@ Performerは、**Supabaseを凌駕する6つの主要コンポーネント**を�
 - **プロセスレジストリ** - 実行時のプロセス発見・管理
 - **リアルタイム監視** - システム全体の健全性チェックとアラート
 - **イベント駆動アーキテクチャ** - ActorDBイベントストリームによる疎結合設計
-- **🔥 Rivet-like リアルタイム同期** - アクター + WebSocket + CRDTによる強力な同期
-- **スナップショット & リプレイ** - 効率的な状態同期とイベント再生
-- **衝突解決** - 複数クライアント間の競合を自動解決
+- **🔥 Rivet-like リアルタイム同期** - アクター + WebSocket/SSE + CRDTによる強力な同期
+- **📡 デュアルトランスポート** - WebSocket + SSEの自動選択で最大互換性
+- **🔄 スナップショット & リプレイ** - O(n)→O(k)+O(Δ)の効率的な状態同期
+- **⚖️ 高度な衝突解決** - CRDT + ベクタークロック + 因果整合性
+- **🔒 ファイアウォール対応** - SSEによるHTTP/HTTPS専用通信
 
 ## ⚡ リアルタイム同期機能
 
@@ -142,6 +145,55 @@ pnpm run demo:chat
 デモでは、**複数タブ間でリアルタイムチャット** が体験できます。各タブは別ユーザーとして接続され、メッセージ送信時にすべてのクライアント（WebSocket/SSE両方）に即座に反映されます。
 
 **WebSocket** は双方向通信に適し、**SSE** はファイアウォールに強い一方通行通信に適しています。
+
+## 🛠️ CLI コマンド
+
+Performerは包括的なCLIツールを提供し、プロジェクトの生成からリアルタイム機能までをサポートします。
+
+### プロジェクト管理
+```bash
+# 新しいプロジェクトを初期化
+performer init my-project
+
+# プロジェクトをビルド
+performer build
+
+# 開発サーバーを起動
+performer serve
+
+# テストを実行
+performer test
+```
+
+### コード生成
+```bash
+# ビジネスドメインを生成
+performer generate:domain UserManagement
+
+# アクターを生成
+performer generate:actor ChatActor
+
+# UIコンポーネントを生成
+performer generate:ui ChatComponent
+
+# WASMモジュールを生成
+performer generate:wasm PerformanceCompute
+
+# リアルタイム機能を生成
+performer generate:realtime ChatRoom
+```
+
+### リアルタイム機能
+```bash
+# チャットデモサーバー起動（WebSocket + SSE）
+pnpm run demo:chat
+
+# WebSocketクライアントのみ起動
+pnpm run demo:chat:ws
+
+# SSEクライアントのみ起動
+pnpm run demo:chat:sse
+```
 
 ## 📦 インストール
 
@@ -659,11 +711,14 @@ MIT License - see LICENSE file for details
 
 ## 🎯 ロードマップ
 
-### v1.0.0 (Current)
-- ✅ **6つのBaaSコンポーネント**: Database, Auth, Storage, Functions, Realtime, Analytics
+### v0.2.0 (Current)
+- ✅ **7つのBaaSコンポーネント**: Database, Auth, Storage, Functions, Realtime, Advanced Realtime, Analytics
 - ✅ **Supabase互換API**: 学習コストを最小化
 - ✅ **WebAssembly統合**: 高性能サーバーレス関数
 - ✅ **イベントソーシング**: 堅牢なデータ永続化
+- ✅ **Rivet-like リアルタイム同期**: WebSocket/SSEデュアルトランスポート + CRDT
+- ✅ **スナップショット最適化**: O(n)→O(k)+O(Δ)計算量削減
+- ✅ **アクター状態管理**: Effect Actor統合
 
 ### v1.1.0 (Next)
 - 🔄 **マイクロサービス統合**: 分散システム対応
