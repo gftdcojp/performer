@@ -129,7 +129,7 @@ export * from "./performance-compute"
   'src/rpc/index.ts': `// RPC Layer
 // Merkle DAG: rpc-node
 
-import { ActorDBHttpClient } from "./actordb-client"
+import { ActorDBClientFactory } from "../../rpc/actordb-client"
 
 // RPC client configuration
 export const createRPCClient = (config: {
@@ -137,7 +137,17 @@ export const createRPCClient = (config: {
   port: number
   secure: boolean
   token?: string
-}) => new ActorDBHttpClient(config)
+}) => {
+  // Set environment variables for ActorDBClientFactory
+  process.env.PERFORMER_DB_MODE = 'http'
+  process.env.PERFORMER_DB_HOST = config.host
+  process.env.PERFORMER_DB_PORT = config.port.toString()
+  process.env.PERFORMER_DB_SECURE = config.secure.toString()
+  if (config.token) {
+    process.env.PERFORMER_DB_TOKEN = config.token
+  }
+  return ActorDBClientFactory.createClient()
+}
 
 export * from "./actordb-client"
 `,

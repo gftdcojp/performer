@@ -1,16 +1,14 @@
 // ActorDB Integration Test
 // Tests actual data persistence with the Performer framework
 
-import { ActorDBHttpClient } from '../src/rpc/actordb-client.ts';
+import { ActorDBClientFactory } from '../src/rpc/actordb-client.ts';
 
 class ActorDBIntegrationTest {
   constructor() {
-    this.client = new ActorDBHttpClient({
-      host: 'localhost',
-      port: 9091,
-      secure: false,
-      timeout: 5000
-    });
+    // Use local libSQL for testing
+    process.env.PERFORMER_DB_MODE = 'local'
+    process.env.PERFORMER_DB_URL = 'file:test.db'
+    this.client = ActorDBClientFactory.createClient();
   }
 
   async runTests() {

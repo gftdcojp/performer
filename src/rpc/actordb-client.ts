@@ -1,7 +1,12 @@
 // ActorDB RPC Client
 // Merkle DAG: rpc-node -> actordb-client
 
+import { config } from "dotenv"
 import { DomainEvent, BusinessEntity } from "@/domain/types"
+import { createClient, type Client } from "@libsql/client"
+
+// Load environment variables
+config()
 
 // RPC Configuration
 export interface RPCConfig {
@@ -51,6 +56,44 @@ export interface ActorDBAPI {
   // Queries
   executeQuery(query: string, params: Record<string, unknown>): Promise<unknown[]>
   createQuery(name: string, definition: Record<string, unknown>): Promise<void>
+}
+
+// Environment-based ActorDB Client Factory
+export class ActorDBClientFactory {
+  static createClient(): ActorDBAPI {
+    const dbMode = process.env.PERFORMER_DB_MODE || 'local'
+
+    if (dbMode === 'local') {
+      // Local libSQL for development
+      const dbUrl = process.env.PERFORMER_DB_URL || 'file:performer.db'
+      const authToken = process.env.PERFORMER_DB_AUTH_TOKEN
+      return new ActorDBLocalClient(dbUrl, authToken)
+    } else if (dbMode === 'http') {
+      // HTTP-based ActorDB server (dekigoto)
+      const config: RPCConfig = {
+        host: process.env.PERFORMER_DB_HOST || 'localhost',
+        port: parseInt(process.env.PERFORMER_DB_PORT || '9090'),
+        secure: process.env.PERFORMER_DB_SECURE === 'true',
+        token: process.env.PERFORMER_DB_TOKEN,
+        timeout: parseInt(process.env.PERFORMER_DB_TIMEOUT || '5000')
+      }
+      return new ActorDBHttpClient(config)
+    } else if (dbMode === 'websocket') {
+      // WebSocket-based ActorDB server
+      const config: RPCConfig = {
+        host: process.env.PERFORMER_DB_HOST || 'localhost',
+        port: parseInt(process.env.PERFORMER_DB_PORT || '9090'),
+        secure: process.env.PERFORMER_DB_SECURE === 'true',
+        token: process.env.PERFORMER_DB_TOKEN,
+        timeout: parseInt(process.env.PERFORMER_DB_TIMEOUT || '5000')
+      }
+      const client = new ActorDBWebSocketClient(config)
+      // Note: WebSocket client needs to be connected before use
+      return client
+    } else {
+      throw new Error(`Unknown PERFORMER_DB_MODE: ${dbMode}. Supported modes: local, http, websocket`)
+    }
+  }
 }
 
 // HTTP-based RPC Client
@@ -406,5 +449,232 @@ export class ActorDBWebSocketClient implements ActorDBAPI {
       this.ws = null
     }
     this.cleanup()
+  }
+}
+
+// Local libSQL-based ActorDB Client for development
+export class ActorDBLocalClient implements ActorDBAPI {
+  // Merkle DAG: libsql-client -> events-store
+  private client: Client
+
+  constructor(url: string, authToken?: string) {
+    this.client = createClient({
+      url,
+      authToken,
+    })
+    this.initializeSchema()
+  }
+
+  private async initializeSchema(): Promise<void> {
+    // Create tables for ActorDB-like functionality
+    await this.client.execute(`
+      CREATE TABLE IF NOT EXISTS events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_id TEXT NOT NULL,
+        event_type TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        timestamp TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    await this.client.execute(`
+      CREATE TABLE IF NOT EXISTS projections (
+        name TEXT PRIMARY KEY,
+        data TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    await this.client.execute(`
+      CREATE TABLE IF NOT EXISTS actors (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        config TEXT NOT NULL,
+        state TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    await this.client.execute(`
+      CREATE TABLE IF NOT EXISTS queries (
+        name TEXT PRIMARY KEY,
+        definition TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+  }
+
+  async writeEvent(event: DomainEvent): Promise<void> {
+    await this.client.execute({
+      sql: `INSERT INTO events (entity_id, event_type, payload, timestamp, version)
+            VALUES (?, ?, ?, ?, ?)`,
+      args: [
+        event.entityId,
+        event.eventType,
+        JSON.stringify(event.payload),
+        event.timestamp.toISOString(),
+        event.version
+      ]
+    })
+  }
+
+  async readEvents(entityId: string): Promise<readonly DomainEvent[]> {
+    const result = await this.client.execute({
+      sql: `SELECT * FROM events WHERE entity_id = ? ORDER BY version ASC`,
+      args: [entityId]
+    })
+
+    return result.rows.map(row => ({
+      entityId: row.entity_id as string,
+      eventType: row.event_type as string,
+      payload: JSON.parse(row.payload as string),
+      timestamp: new Date(row.timestamp as string),
+      version: row.version as number
+    }))
+  }
+
+  async readEventsByType(eventType: string): Promise<readonly DomainEvent[]> {
+    const result = await this.client.execute({
+      sql: `SELECT * FROM events WHERE event_type = ? ORDER BY timestamp ASC`,
+      args: [eventType]
+    })
+
+    return result.rows.map(row => ({
+      entityId: row.entity_id as string,
+      eventType: row.event_type as string,
+      payload: JSON.parse(row.payload as string),
+      timestamp: new Date(row.timestamp as string),
+      version: row.version as number
+    }))
+  }
+
+  async createProjection(name: string, events: readonly DomainEvent[]): Promise<Record<string, unknown>> {
+    // Simple projection: count events by type
+    const projection: Record<string, number> = {}
+    events.forEach(event => {
+      projection[event.eventType] = (projection[event.eventType] || 0) + 1
+    })
+
+    await this.client.execute({
+      sql: `INSERT OR REPLACE INTO projections (name, data) VALUES (?, ?)`,
+      args: [name, JSON.stringify(projection)]
+    })
+
+    return projection
+  }
+
+  async getProjection(name: string): Promise<Record<string, unknown>> {
+    const result = await this.client.execute({
+      sql: `SELECT data FROM projections WHERE name = ?`,
+      args: [name]
+    })
+
+    if (result.rows.length === 0) {
+      return {}
+    }
+
+    return JSON.parse(result.rows[0].data as string)
+  }
+
+  async updateProjection(name: string, updates: Record<string, unknown>): Promise<void> {
+    const current = await this.getProjection(name)
+    const updated = { ...current, ...updates }
+
+    await this.client.execute({
+      sql: `INSERT OR REPLACE INTO projections (name, data) VALUES (?, ?)`,
+      args: [name, JSON.stringify(updated)]
+    })
+  }
+
+  async createActor(actorType: string, config: Record<string, unknown>): Promise<string> {
+    const actorId = `actor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+    await this.client.execute({
+      sql: `INSERT INTO actors (id, type, config, state) VALUES (?, ?, ?, ?)`,
+      args: [
+        actorId,
+        actorType,
+        JSON.stringify(config),
+        JSON.stringify({})
+      ]
+    })
+
+    return actorId
+  }
+
+  async getActorState(actorId: string): Promise<Record<string, unknown>> {
+    const result = await this.client.execute({
+      sql: `SELECT state FROM actors WHERE id = ?`,
+      args: [actorId]
+    })
+
+    if (result.rows.length === 0) {
+      return {}
+    }
+
+    return JSON.parse(result.rows[0].state as string)
+  }
+
+  async sendActorMessage(actorId: string, message: Record<string, unknown>): Promise<unknown> {
+    const currentState = await this.getActorState(actorId)
+    const updatedState = { ...currentState, lastMessage: message, processedAt: new Date() }
+
+    await this.client.execute({
+      sql: `UPDATE actors SET state = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      args: [JSON.stringify(updatedState), actorId]
+    })
+
+    return { acknowledged: true }
+  }
+
+  async executeQuery(query: string, params: Record<string, unknown>): Promise<unknown[]> {
+    // Simple query simulation for development
+    if (query === 'findUsers') {
+      const result = await this.client.execute({
+        sql: `SELECT entity_id, COUNT(*) as event_count FROM events WHERE entity_id LIKE 'user-%' GROUP BY entity_id`,
+        args: []
+      })
+
+      return result.rows.map(row => ({
+        id: row.entity_id,
+        eventCount: row.event_count
+      }))
+    }
+
+    return []
+  }
+
+  async createQuery(name: string, definition: Record<string, unknown>): Promise<void> {
+    await this.client.execute({
+      sql: `INSERT OR REPLACE INTO queries (name, definition) VALUES (?, ?)`,
+      args: [name, JSON.stringify(definition)]
+    })
+  }
+
+  // Utility methods for local development
+  async clear(): Promise<void> {
+    await this.client.execute(`DELETE FROM events`)
+    await this.client.execute(`DELETE FROM projections`)
+    await this.client.execute(`DELETE FROM actors`)
+    await this.client.execute(`DELETE FROM queries`)
+  }
+
+  async getStats(): Promise<Record<string, number>> {
+    const [events, projections, actors, queries] = await Promise.all([
+      this.client.execute(`SELECT COUNT(*) as count FROM events`),
+      this.client.execute(`SELECT COUNT(*) as count FROM projections`),
+      this.client.execute(`SELECT COUNT(*) as count FROM actors`),
+      this.client.execute(`SELECT COUNT(*) as count FROM queries`)
+    ])
+
+    return {
+      events: events.rows[0].count as number,
+      projections: projections.rows[0].count as number,
+      actors: actors.rows[0].count as number,
+      queries: queries.rows[0].count as number
+    }
   }
 }

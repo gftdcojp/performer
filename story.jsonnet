@@ -58,6 +58,14 @@
       description: 'RPC communication layer for ActorDB integration'
     },
 
+    // Persistence Layer
+    persistence: {
+      type: 'libsql-database',
+      deps: [],
+      provides: ['data-persistence', 'event-store', 'projection-store', 'actor-store'],
+      description: 'Local libSQL database for event sourcing, projections, and actor state persistence'
+    },
+
     // Real-time Synchronization Layer (Rivet-like + SSE)
     realtime: {
       type: 'websocket-sse-eventsourcing',
@@ -77,21 +85,23 @@
 
   // Execution Order (Topological Sort)
   execution_order: [
-    'domain',     // Foundation: Business logic
-    'rpc',        // Communication setup
-    'realtime',   // Real-time synchronization
-    'actor',      // State management
-    'wasm',       // Performance components
-    'ui',         // User interface
-    'build',      // Compilation
-    'test',       // Quality assurance
-    'cli'         // CLI interface
+    'persistence', // Foundation: Data persistence
+    'domain',      // Foundation: Business logic
+    'rpc',         // Communication setup
+    'realtime',    // Real-time synchronization
+    'actor',       // State management
+    'wasm',        // Performance components
+    'ui',          // User interface
+    'build',       // Compilation
+    'test',        // Quality assurance
+    'cli'          // CLI interface
   ],
 
   // Merkle DAG Structure
   merkle_dag: {
-    root: 'domain',
+    root: 'persistence',
     branches: {
+      foundation: ['persistence', 'domain'],
       business: ['domain'],
       communication: ['rpc', 'realtime'],
       presentation: ['actor', 'ui'],
@@ -114,11 +124,18 @@
       'vite',                    // Build tool
       'typescript',
       'ws',                      // WebSocket library for real-time communication
-      'uuid'                     // UUID generation for event IDs
+      'uuid',                    // UUID generation for event IDs
+      '@libsql/client',          // libSQL client for local persistence
+      'dotenv'                   // Environment variable management
     ],
     actor_db_integration: true,
     wasm_support: true,
     realtime_support: true,
+    persistence: {
+      default_mode: 'local',     // 'local' (libSQL), 'http' (ActorDB server), 'websocket'
+      local_db_url: 'file:performer.db',
+      supported_backends: ['libsql', 'postgresql', 'sqlite']
+    },
     cli_commands: [
       'init',
       'generate:domain',

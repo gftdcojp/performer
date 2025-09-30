@@ -200,15 +200,25 @@ describe('WASM Performance Compute', () => {
 // Merkle DAG: rpc-node -> actordb-client-test
 
 import { describe, it, expect } from 'vitest'
-import { ActorDBHttpClient } from './actordb-client'
+import { ActorDBClientFactory } from '../../rpc/actordb-client'
 
 describe('ActorDB RPC Client', () => {
-  it('should create RPC client', () => {
-    const client = new ActorDBHttpClient({
-      host: 'localhost',
-      port: 9090,
-      secure: false,
-    })
+  it('should create local RPC client', () => {
+    // Set local mode for testing
+    process.env.PERFORMER_DB_MODE = 'local'
+    process.env.PERFORMER_DB_URL = 'file:test.db'
+
+    const client = ActorDBClientFactory.createClient()
+    expect(client).toBeDefined()
+  })
+
+  it('should create HTTP RPC client', () => {
+    // Set HTTP mode for testing
+    process.env.PERFORMER_DB_MODE = 'http'
+    process.env.PERFORMER_DB_HOST = 'localhost'
+    process.env.PERFORMER_DB_PORT = '9090'
+
+    const client = ActorDBClientFactory.createClient()
     expect(client).toBeDefined()
   })
 
