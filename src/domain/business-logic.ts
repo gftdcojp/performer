@@ -99,8 +99,11 @@ export class RuleEngine {
   ): BusinessLogic<B> =>
     pipe(
       Effect.forEach(inputs, (input) =>
-        Effect.forEach(workflow.steps, (step) =>
-          RuleEngine.executeRule(step, input)
+        pipe(
+          Effect.forEach(workflow.steps, (step) =>
+            RuleEngine.executeRule(step, input)
+          ),
+          Effect.map((results) => results.every(Boolean))
         )
       ),
       Effect.map(workflow.aggregator)

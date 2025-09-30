@@ -89,17 +89,21 @@ class ActorRuntime<State, Msg extends Message> {
 // Actor System Implementation
 export class ActorSystemImpl implements ActorSystem {
   private actors = new Map<string, { ref: ActorRef<any>, fiber: Fiber.Fiber<void, never>, runtime: ActorRuntime<any, any> }>()
+  private supervisor: Supervisor.Supervisor
 
-  constructor(private supervisor: Supervisor.Supervisor) {}
+  constructor(supervisor: Supervisor.Supervisor = Supervisor.none) {
+    this.supervisor = supervisor
+  }
 
-  make = <State, Msg extends Message>(
+  make<State, Msg extends Message>(
     id: string,
     initialState: State,
     behavior: ActorBehavior<State, Msg>,
     config: ActorConfig = {}
-  ): Effect.Effect<ActorRef<Msg>, Error, never> => {
+  ): Effect.Effect<ActorRef<Msg>, Error, never> {
+    const self = this
     return Effect.gen(function* () {
-      if (this.actors.has(id)) {
+      if (self.actors.has(id)) {
         return yield* Effect.fail(new Error(`Actor ${id} already exists`))
       }
 
@@ -121,7 +125,7 @@ export class ActorSystemImpl implements ActorSystem {
 
       const context: ActorContext<Msg> = {
         self: {} as ActorRef<Msg>, // Will be set after creation
-        system: this,
+        system: self,
       }
 
       // Create runtime
@@ -132,7 +136,7 @@ export class ActorSystemImpl implements ActorSystem {
         behavior,
         context,
         fullConfig,
-        this.supervisor
+        self.supervisor
       )
 
       // Create actor ref
@@ -155,21 +159,17 @@ export class ActorSystemImpl implements ActorSystem {
       const fiber = yield* Effect.fork(runtime.run())
 
       // Store actor
-      this.actors.set(id, { ref: actorRef, fiber, runtime })
+      self.actors.set(id, { ref: actorRef, fiber, runtime })
 
       return actorRef
     })
   }
 
-  get = <Msg extends Message>(
-    id: string
-  ): Effect.Effect<ActorRef<Msg> | undefined, never, never> => {
+  get<Msg extends Message>(id: string): Effect.Effect<ActorRef<Msg> | undefined, never, never> {
     return Effect.succeed(this.actors.get(id)?.ref)
   }
 
-  stop = (
-    id: string
-  ): Effect.Effect<void, Error, never> => {
+  stop(id: string): Effect.Effect<void, Error, never> {
     return Effect.gen(function* () {
       const actor = this.actors.get(id)
       if (!actor) {
@@ -181,7 +181,7 @@ export class ActorSystemImpl implements ActorSystem {
     })
   }
 
-  shutdown = (): Effect.Effect<void, never, never> => {
+  shutdown(): Effect.Effect<void, never, never> {
     return Effect.gen(function* () {
       for (const [id, actor] of this.actors) {
         yield* Fiber.interrupt(actor.fiber)
