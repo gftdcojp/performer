@@ -2,7 +2,6 @@
 // Root layout component for the demo app
 
 import React from 'react';
-import './globals.css';
 
 interface LayoutProps {
   children: React.ReactNode;

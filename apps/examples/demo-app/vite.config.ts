@@ -12,8 +12,11 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 3001, // 3000が競合していたので3001に変更
     host: true,
+    hmr: {
+      overlay: false, // エラーオーバーレイを無効化
+    },
   },
   build: {
     outDir: 'dist',

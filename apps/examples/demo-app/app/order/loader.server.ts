@@ -1,19 +1,16 @@
-// Merkle DAG: demo_loader -> server_data_fetch -> order_query
-// Server-side data loading for order page
-
 "use server";
 
-import { q } from "@pkg/data";
-import { z } from "zod";
+// Merkle DAG: order_loader -> neo4j_query -> type_validation
+// Server-side loader for order data with Neo4j integration
 
-// Input validation schema
-const LoaderParamsSchema = z.object({
-  businessKey: z.string().min(1, "Business key is required")
-});
+import { createActions } from "@pkg/actions";
 
-export type LoaderParams = z.infer<typeof LoaderParamsSchema>;
+// Type definitions
+interface LoaderParams {
+  businessKey: string;
+}
 
-export interface OrderData {
+interface OrderData {
   id: string;
   businessKey: string;
   customerId: string;
@@ -29,35 +26,36 @@ export interface OrderData {
   updatedAt: Date;
 }
 
-export async function loader(params: LoaderParams): Promise<OrderData | null> {
-  try {
-    // Validate input parameters
-    const validatedParams = LoaderParamsSchema.parse(params);
+// Mock Auth0 config (replace with actual config)
+const auth0Config = {
+  domain: 'your-domain.auth0.com',
+  clientID: 'your-client-id',
+  audience: 'your-audience'
+};
 
-    // Query order data from Neo4j
-    const connection = {
-      getDriver: () => ({ /* mock driver */ }),
-      getNeogma: () => ({ /* mock neogma */ })
-    } as any;
+const actions = createActions(auth0Config);
 
-    // In real implementation, this would connect to actual Neo4j instance
-    // For demo purposes, return mock data
-    const mockOrder: OrderData = {
+// Loader function
+export const loader = actions.loader(
+  async (context) => {
+    // In a real implementation, this would extract businessKey from URL params
+    // For now, return mock data
+    const orderData: OrderData = {
       id: `order-${Date.now()}`,
-      businessKey: validatedParams.businessKey,
-      customerId: "customer-123",
+      businessKey: 'demo-123', // This would come from URL params in real implementation
+      customerId: 'customer-123',
       amount: 750,
       status: 'submitted',
       items: [
         {
-          productId: "prod-1",
-          name: "Widget A",
+          productId: 'prod-1',
+          name: 'Widget A',
           quantity: 2,
           price: 250
         },
         {
-          productId: "prod-2",
-          name: "Widget B",
+          productId: 'prod-2',
+          name: 'Widget B',
           quantity: 1,
           price: 250
         }
@@ -66,43 +64,6 @@ export async function loader(params: LoaderParams): Promise<OrderData | null> {
       updatedAt: new Date()
     };
 
-    return mockOrder;
-  } catch (error) {
-    console.error('Failed to load order data:', error);
-    return null;
+    return orderData;
   }
-}
-
-// Additional loader for process instances
-export async function loadProcessInstance(businessKey: string) {
-  try {
-    // In real implementation, query process instance from Neo4j
-    // For demo purposes, return mock data
-    return {
-      id: `process-${Date.now()}`,
-      processId: "OrderProcess",
-      businessKey,
-      status: 'running',
-      variables: { amount: 750, customerId: "customer-123" },
-      startTime: new Date(),
-      tasks: [
-        {
-          id: "task-1",
-          name: "Validate Order",
-          type: "service",
-          status: "completed"
-        },
-        {
-          id: "task-2",
-          name: "Manager Approval",
-          type: "user",
-          status: "running",
-          assignee: "manager"
-        }
-      ]
-    };
-  } catch (error) {
-    console.error('Failed to load process instance:', error);
-    return null;
-  }
-}
+);

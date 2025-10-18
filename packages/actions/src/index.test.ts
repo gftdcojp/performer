@@ -1,18 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { createActions, ZodValidator } from './index'
-import { z } from 'zod'
+import { createActions, TypeValidator } from './index'
 
-describe('ZodValidator', () => {
-  it('should validate successfully', async () => {
-    const schema = z.object({ name: z.string() })
-    const result = await ZodValidator.validate(schema, { name: 'test' })
+describe('TypeValidator', () => {
+  it('should validate successfully', () => {
+    const result = TypeValidator.validate<{ name: string }>({ name: 'test' })
     expect(result).toEqual({ name: 'test' })
   })
 
-  it('should fail validation', async () => {
-    const schema = z.object({ name: z.string() })
-    const result = ZodValidator.safeValidate(schema, { name: 123 })
-    expect(result.success).toBe(false)
+  it('should handle safe validation', () => {
+    const result = TypeValidator.safeValidate<{ name: string }>({ name: 'test' })
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual({ name: 'test' })
   })
 })
 

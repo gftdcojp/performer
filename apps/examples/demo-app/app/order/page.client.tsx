@@ -4,13 +4,22 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { loader, loadProcessInstance, type OrderData } from './loader.server';
-import {
-  startOrder,
-  approveOrder,
-  processPayment,
-  getProcessStatus
-} from './actions.server';
+
+interface OrderData {
+  id: string;
+  businessKey: string;
+  customerId: string;
+  amount: number;
+  status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'paid';
+  items: Array<{
+    productId: string;
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface OrderPageProps {
   businessKey: string;
@@ -32,8 +41,35 @@ export default function OrderPage({ businessKey, initialData }: OrderPageProps) 
 
   const loadOrderData = async () => {
     try {
-      const data = await loader({ businessKey });
-      setOrderData(data);
+      // In a real implementation, this would call an API endpoint
+      // For now, use mock data
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const mockData: OrderData = {
+        id: `order-${Date.now()}`,
+        businessKey,
+        customerId: 'customer-123',
+        amount: 750,
+        status: 'submitted',
+        items: [
+          {
+            productId: 'prod-1',
+            name: 'Widget A',
+            quantity: 2,
+            price: 250
+          },
+          {
+            productId: 'prod-2',
+            name: 'Widget B',
+            quantity: 1,
+            price: 250
+          }
+        ],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      setOrderData(mockData);
     } catch (error) {
       setMessage('Failed to load order data');
     }
@@ -41,10 +77,18 @@ export default function OrderPage({ businessKey, initialData }: OrderPageProps) 
 
   const loadProcessStatus = async () => {
     try {
-      const result = await getProcessStatus({ businessKey });
-      if (result.success) {
-        setProcessStatus(result);
-      }
+      // In a real implementation, this would call an API endpoint
+      // For now, use mock data
+      const mockResult = {
+        success: true,
+        status: 'running',
+        tasks: [
+          { id: 'task-1', name: 'Validate Order', type: 'service', status: 'completed' },
+          { id: 'task-2', name: 'Manager Approval', type: 'user', status: 'running', assignee: 'manager' }
+        ]
+      };
+
+      setProcessStatus(mockResult);
     } catch (error) {
       console.error('Failed to load process status:', error);
     }
@@ -57,18 +101,17 @@ export default function OrderPage({ businessKey, initialData }: OrderPageProps) 
     setMessage('');
 
     try {
-      const result = await startOrder({
-        businessKey,
-        customerId: orderData.customerId,
-        amount: orderData.amount,
-        items: orderData.items
-      });
+      // In a real implementation, this would make an API call
+      // For now, simulate the action
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (result.success) {
-        setMessage(result.message);
+      const mockResult = { success: true, message: 'Order process started successfully' };
+
+      if (mockResult.success) {
+        setMessage(mockResult.message);
         await loadProcessStatus();
       } else {
-        setMessage(result.message);
+        setMessage(mockResult.message || 'Failed to start order process');
       }
     } catch (error) {
       setMessage('Failed to start order process');
@@ -82,13 +125,13 @@ export default function OrderPage({ businessKey, initialData }: OrderPageProps) 
     setMessage('');
 
     try {
-      const result = await approveOrder({
-        businessKey,
-        approved,
-        comments
-      });
+      // In a real implementation, this would make an API call
+      // For now, simulate the action
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      setMessage(result.message);
+      const mockResult = { message: approved ? 'Order approved successfully' : 'Order rejected' };
+
+      setMessage(mockResult.message);
       await loadProcessStatus();
     } catch (error) {
       setMessage('Failed to process approval');
@@ -102,17 +145,22 @@ export default function OrderPage({ businessKey, initialData }: OrderPageProps) 
     setMessage('');
 
     try {
-      const result = await processPayment({
-        businessKey,
-        paymentMethod: paymentMethod as any,
-        paymentDetails: { /* mock payment details */ }
-      });
+      // In a real implementation, this would make an API call
+      // For now, simulate the action
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      if (result.success) {
-        setMessage(`Payment successful! Transaction ID: ${result.transactionId}`);
+      const mockTransactionId = `txn-${Date.now()}`;
+      const mockResult = {
+        success: true,
+        message: 'Payment processed successfully',
+        data: { transactionId: mockTransactionId }
+      };
+
+      if (mockResult.success && mockResult.data) {
+        setMessage(`Payment successful! Transaction ID: ${mockResult.data.transactionId}`);
         await loadProcessStatus();
       } else {
-        setMessage(result.message);
+        setMessage(mockResult.message || 'Payment processing failed');
       }
     } catch (error) {
       setMessage('Payment processing failed');
