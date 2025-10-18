@@ -1,4 +1,4 @@
-// Merkle DAG: demo_layout -> app_layout -> global_styles
+// Merkle DAG: layout_component -> global_navigation -> responsive_design
 // Root layout component for the demo app
 
 import React from 'react';

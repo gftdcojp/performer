@@ -1,4 +1,4 @@
-// Merkle DAG: demo_homepage -> welcome_page -> demo_navigation
+// Merkle DAG: homepage -> demo_navigation -> feature_showcase
 // Homepage component for the demo application
 
 "use client";

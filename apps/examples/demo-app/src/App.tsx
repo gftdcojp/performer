@@ -1,28 +1,33 @@
 import React, { useState, useEffect } from 'react'
-import Layout from '../app/layout'
-import HomePage from '../app/page/page.client'
-import OrderPage from '../app/order/page.client'
-import AdminDashboard from '../app/admin/dashboard/page.client'
-import ProcessInstancesPage from '../app/admin/processes/page.client'
-import TaskManagementPage from '../app/admin/tasks/page.client'
-import IntegratedProcessManagementPage from '../app/admin/integrated/page.client'
+import Layout from './components/layout/Layout'
+import HomePage from './pages/home/HomePage'
+import OrderPage from './pages/order/OrderPage'
+import AdminDashboard from './pages/admin/dashboard/AdminDashboard'
+import ProcessInstancesPage from './pages/admin/processes/ProcessInstancesPage'
+import TaskManagementPage from './pages/admin/tasks/TaskManagementPage'
+import IntegratedProcessManagementPage from './pages/admin/integrated/IntegratedProcessManagementPage'
 
 function App() {
-  const [currentPath, setCurrentPath] = useState(window.location.pathname)
+  const [currentPath, setCurrentPath] = useState(window?.location?.pathname || '/')
   const [routeParams, setRouteParams] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname)
+      setCurrentPath(window?.location?.pathname || '/')
+      parseRoute(window?.location?.pathname || '/')
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('popstate', handlePopState)
+      // Initial route parsing
       parseRoute(window.location.pathname)
     }
 
-    window.addEventListener('popstate', handlePopState)
-
-    // Initial route parsing
-    parseRoute(window.location.pathname)
-
-    return () => window.removeEventListener('popstate', handlePopState)
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('popstate', handlePopState)
+      }
+    }
   }, [])
 
   const parseRoute = (path: string) => {
@@ -40,13 +45,17 @@ function App() {
   }
 
   const navigate = (path: string) => {
-    window.history.pushState({}, '', path)
-    setCurrentPath(path)
-    parseRoute(path)
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', path)
+      setCurrentPath(path)
+      parseRoute(path)
+    }
   }
 
   // Make navigate available globally for components
-  (window as any).navigate = navigate
+  if (typeof window !== 'undefined') {
+    (window as any).navigate = navigate
+  }
 
   const renderPage = () => {
     if (currentPath === '/' || currentPath === '') {

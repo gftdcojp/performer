@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/check-structure.js && vite build",
     "preview": "vite preview",
     "performer:dev": "performer dev --app=demo-app",
     "performer:build": "performer build --app=demo-app",
