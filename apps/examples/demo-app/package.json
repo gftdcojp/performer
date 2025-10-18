@@ -4,13 +4,14 @@
   "description": "Demo app: order->approval->payment BPMN process",
   "private": true,
   "scripts": {
-    "dev": "performer dev",
-    "build": "performer build",
-    "start": "performer start",
+    "dev": "performer dev --app=demo-app",
+    "build": "performer build --app=demo-app",
+    "start": "performer start --app=demo-app",
     "lint": "biome check .",
     "format": "biome format --write .",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "demo": "node dist/index.js"
   },
   "keywords": ["demo", "bpmn", "order"],
   "license": "MIT",
