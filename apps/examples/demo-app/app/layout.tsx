@@ -31,6 +31,10 @@ export default function Layout({ children }: LayoutProps) {
                 <a href="/order/demo-123" className="text-blue-600 hover:text-blue-800">
                   Sample Order
                 </a>
+                <span className="text-gray-300">|</span>
+                <a href="/admin/dashboard" className="text-purple-600 hover:text-purple-800">
+                  Admin Dashboard
+                </a>
               </div>
             </div>
           </div>

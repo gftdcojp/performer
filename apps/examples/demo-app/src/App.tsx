@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react'
 import Layout from '../app/layout'
 import HomePage from '../app/page/page.client'
 import OrderPage from '../app/order/page.client'
+import AdminDashboard from '../app/admin/dashboard/page.client'
+import ProcessInstancesPage from '../app/admin/processes/page.client'
+import TaskManagementPage from '../app/admin/tasks/page.client'
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname)
@@ -51,6 +54,18 @@ function App() {
 
     if (currentPath.startsWith('/order/')) {
       return <OrderPage businessKey={routeParams.businessKey} />
+    }
+
+    if (currentPath === '/admin/dashboard') {
+      return <AdminDashboard />
+    }
+
+    if (currentPath === '/admin/processes') {
+      return <ProcessInstancesPage />
+    }
+
+    if (currentPath === '/admin/tasks') {
+      return <TaskManagementPage />
     }
 
     return <HomePage />

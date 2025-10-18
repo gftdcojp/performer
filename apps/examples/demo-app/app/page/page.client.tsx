@@ -38,6 +38,15 @@ export default function HomePage() {
               Start Order Demo
             </button>
             <button
+              onClick={() => {
+                const navigate = (window as any).navigate;
+                if (navigate) navigate('/admin/dashboard');
+              }}
+              className="bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 transition-colors text-lg font-medium"
+            >
+              Admin Dashboard
+            </button>
+            <button
               onClick={() => setSelectedDemo('about')}
               className="bg-white text-blue-600 px-8 py-3 rounded-lg border-2 border-blue-600 hover:bg-blue-50 transition-colors text-lg font-medium"
             >
