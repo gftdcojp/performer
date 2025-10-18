@@ -133,6 +133,7 @@ export default function OrderPage({ businessKey, initialData }: OrderPageProps) 
   }
 
   return (
+    <>
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto py-8 px-4">
         {/* Header */}
@@ -142,6 +143,16 @@ export default function OrderPage({ businessKey, initialData }: OrderPageProps) 
               <h1 className="text-3xl font-bold text-gray-900">Order Processing</h1>
               <p className="text-gray-600 mt-1">Business Key: {businessKey}</p>
             </div>
+            <button
+              onClick={() => {
+                const navigate = (window as any).navigate;
+                if (navigate) navigate('/');
+              }}
+              className="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200 transition-colors"
+            >
+              ← Back to Home
+            </button>
+          </div>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
               orderData.status === 'paid' ? 'bg-green-100 text-green-800' :
               orderData.status === 'approved' ? 'bg-blue-100 text-blue-800' :
@@ -286,6 +297,6 @@ export default function OrderPage({ businessKey, initialData }: OrderPageProps) 
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

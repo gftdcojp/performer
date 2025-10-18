@@ -10,8 +10,11 @@ export default function HomePage() {
 
   const handleStartDemo = (demoType: string) => {
     setSelectedDemo(demoType);
-    // In a real app, this would navigate to the demo
-    window.location.href = `/order/demo-${Date.now()}`;
+    // Navigate to order demo
+    const navigate = (window as any).navigate;
+    if (navigate) {
+      navigate(`/order/demo-${Date.now()}`);
+    }
   };
 
   return (
@@ -111,7 +114,7 @@ export default function HomePage() {
                 <span className="text-2xl">👔</span>
               </div>
               <h3 className="font-semibold mb-2">Approval</h3>
-              <p className="text-sm text-gray-600">Manager approval if >$1000</p>
+              <p className="text-sm text-gray-600">Manager approval if {'>'}$1000</p>
             </div>
 
             <div className="text-center">
