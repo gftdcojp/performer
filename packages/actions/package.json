@@ -1,0 +1,37 @@
+{
+  "name": "@pkg/actions",
+  "version": "1.0.0",
+  "description": "Remix-style loader/action implementation with Auth0 guard and Zod validation",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["actions", "auth", "validation", "remix"],
+  "license": "MIT",
+  "devDependencies": {
+    "@biomejs/biome": "^1.8.3",
+    "@types/auth0-js": "^9.21.0",
+    "@types/node": "^20.14.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "auth0-js": "^9.27.0",
+    "zod": "^3.23.0"
+  }
+}
