@@ -47,6 +47,15 @@ export default function HomePage() {
               Admin Dashboard
             </button>
             <button
+              onClick={() => {
+                const navigate = (window as any).navigate;
+                if (navigate) navigate('/admin/integrated');
+              }}
+              className="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 transition-colors text-lg font-medium"
+            >
+              Process Integration Hub
+            </button>
+            <button
               onClick={() => setSelectedDemo('about')}
               className="bg-white text-blue-600 px-8 py-3 rounded-lg border-2 border-blue-600 hover:bg-blue-50 transition-colors text-lg font-medium"
             >

@@ -5,6 +5,7 @@ import OrderPage from '../app/order/page.client'
 import AdminDashboard from '../app/admin/dashboard/page.client'
 import ProcessInstancesPage from '../app/admin/processes/page.client'
 import TaskManagementPage from '../app/admin/tasks/page.client'
+import IntegratedProcessManagementPage from '../app/admin/integrated/page.client'
 
 function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname)
@@ -66,6 +67,10 @@ function App() {
 
     if (currentPath === '/admin/tasks') {
       return <TaskManagementPage />
+    }
+
+    if (currentPath === '/admin/integrated') {
+      return <IntegratedProcessManagementPage />
     }
 
     return <HomePage />

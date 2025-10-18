@@ -5,36 +5,63 @@
 
 import React, { useState, useEffect } from 'react';
 
-// Process metadata (duplicated from server-side for client use)
-const processMetadata = {
-  categories: {
-    validation: {
-      name: "Validation",
-      color: "#3B82F6",
-      description: "Order validation and risk assessment"
-    },
-    approval: {
-      name: "Approval",
-      color: "#F59E0B",
-      description: "Multi-level approval processes"
-    },
-    payment: {
-      name: "Payment",
-      color: "#10B981",
-      description: "Payment processing and confirmation"
-    },
-    fulfillment: {
-      name: "Fulfillment",
-      color: "#8B5CF6",
-      description: "Warehouse and shipping operations"
-    },
-    communication: {
-      name: "Communication",
-      color: "#EF4444",
-      description: "Customer notifications and updates"
+// Process metadata for all integrated processes (client-side copy)
+const allProcessMetadata = {
+  order: {
+    id: "ComplexOrderProcess",
+    name: "Order Processing",
+    categories: {
+      validation: { name: "Validation", color: "#3B82F6", description: "Order validation and risk assessment" },
+      approval: { name: "Approval", color: "#F59E0B", description: "Multi-level approval processes" },
+      payment: { name: "Payment", color: "#10B981", description: "Payment processing and confirmation" },
+      fulfillment: { name: "Fulfillment", color: "#8B5CF6", description: "Warehouse and shipping operations" },
+      communication: { name: "Communication", color: "#EF4444", description: "Customer notifications and updates" }
+    }
+  },
+  returns: {
+    id: "ReturnsProcess",
+    name: "Returns Processing",
+    categories: {
+      validation: { name: "Validation", color: "#3B82F6", description: "Return request validation" },
+      inspection: { name: "Inspection", color: "#F59E0B", description: "Product inspection and evaluation" },
+      approval: { name: "Approval", color: "#10B981", description: "Refund approval processes" },
+      refund: { name: "Refund", color: "#8B5CF6", description: "Refund processing and calculation" },
+      warehouse: { name: "Warehouse", color: "#EF4444", description: "Inventory restocking operations" },
+      communication: { name: "Communication", color: "#EC4899", description: "Customer notifications" }
+    }
+  },
+  support: {
+    id: "CustomerSupportProcess",
+    name: "Customer Support",
+    categories: {
+      triage: { name: "Triage", color: "#3B82F6", description: "Request categorization and prioritization" },
+      response: { name: "Response", color: "#F59E0B", description: "Initial customer responses" },
+      investigation: { name: "Investigation", color: "#10B981", description: "Issue investigation and analysis" },
+      escalation: { name: "Escalation", color: "#8B5CF6", description: "Escalation management" },
+      resolution: { name: "Resolution", color: "#EF4444", description: "Issue resolution and closure" },
+      communication: { name: "Communication", color: "#EC4899", description: "Customer communications" }
+    }
+  },
+  inventory: {
+    id: "InventoryManagementProcess",
+    name: "Inventory Management",
+    categories: {
+      analysis: { name: "Analysis", color: "#3B82F6", description: "Stock level analysis and monitoring" },
+      procurement: { name: "Procurement", color: "#F59E0B", description: "Supplier evaluation and ordering" },
+      approval: { name: "Approval", color: "#10B981", description: "Purchase order approvals" },
+      logistics: { name: "Logistics", color: "#8B5CF6", description: "Delivery monitoring and coordination" },
+      warehouse: { name: "Warehouse", color: "#EF4444", description: "Warehouse operations" },
+      receiving: { name: "Receiving", color: "#EC4899", description: "Goods receiving process" },
+      quality: { name: "Quality", color: "#84CC16", description: "Quality inspection and control" },
+      system: { name: "System", color: "#6366F1", description: "System updates and integration" },
+      optimization: { name: "Optimization", color: "#F97316", description: "Inventory optimization" },
+      communication: { name: "Communication", color: "#06B6D4", description: "Internal and supplier communications" }
     }
   }
 };
+
+const [selectedProcessType, setSelectedProcessType] = useState<string>('order');
+const processMetadata = allProcessMetadata[selectedProcessType as keyof typeof allProcessMetadata];
 
 interface DashboardStats {
   totalProcesses: number;
@@ -139,7 +166,22 @@ export default function AdminDashboard() {
 
         {/* Navigation */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Admin Navigation</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Admin Navigation</h2>
+            <div className="flex items-center space-x-4">
+              <label className="text-sm font-medium text-gray-700">Process Type:</label>
+              <select
+                value={selectedProcessType}
+                onChange={(e) => setSelectedProcessType(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="order">Order Processing</option>
+                <option value="returns">Returns Processing</option>
+                <option value="support">Customer Support</option>
+                <option value="inventory">Inventory Management</option>
+              </select>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-4">
             <button
               onClick={() => {
@@ -167,6 +209,15 @@ export default function AdminDashboard() {
               className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 transition-colors"
             >
               ✅ Task Management
+            </button>
+            <button
+              onClick={() => {
+                const navigate = (window as any).navigate;
+                if (navigate) navigate('/admin/integrated');
+              }}
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition-colors"
+            >
+              🔗 Process Integration
             </button>
             <button
               onClick={() => {
