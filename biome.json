@@ -15,6 +15,16 @@
       },
       "a11y": {
         "useAltText": "error"
+      },
+      "nursery": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "zod": "Zod is not allowed in this project. Use TypeScript types instead."
+            }
+          }
+        }
       }
     }
   },
@@ -26,7 +36,8 @@
       "node_modules",
       ".next",
       "dist",
-      "build"
+      "build",
+      "app/"
     ]
   },
   "javascript": {
