@@ -1,8 +1,10 @@
 {
 	"name": "@gftdcojp/performer-cli",
-	"private": true,
 	"version": "1.0.0",
-	"description": "CLI tools for create, dev, build, start, gen commands",
+	"description": "Next.js-style CLI with create, dev, build commands for Performer framework",
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com"
+	},
 	"main": "dist/index.js",
 	"module": "dist/index.mjs",
 	"types": "dist/index.d.ts",

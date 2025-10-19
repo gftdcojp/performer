@@ -70,7 +70,7 @@ pnpm add @gftdcojp/performer --registry=https://npm.pkg.github.com
 
 ### CLI Installation
 
-Install the Performer CLI globally:
+Install the Performer CLI globally for the complete development experience:
 
 ```bash
 # Install CLI
@@ -213,6 +213,15 @@ performer info
 # Manage telemetry
 performer telemetry enable
 ```
+
+#### CLI Architecture
+
+The Performer CLI provides:
+
+- **Project Templates**: Ready-to-use React + TypeScript + Tailwind CSS templates
+- **Vite Integration**: Hot Module Replacement (HMR) development server
+- **Turborepo Support**: Optimized builds for monorepo environments
+- **Auto-detection**: Automatically detects project type and available tools
 
 ### Basic Usage Example
 
