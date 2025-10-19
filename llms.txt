@@ -1,108 +1,108 @@
-# Performer Framework 完全ガイド
+# Performer Framework Complete Guide
 
-BPMN + Actor + Neo4j Web Framework（Next.js 型規約 × Remix 境界 × Effect 実行）
+BPMN + Actor + Neo4j Web Framework (Next.js Type Conventions × Remix Boundaries × Effect Execution)
 
-## 📋 目次
+## Table of Contents
 
-1. [概要と特徴](#概要と特徴)
-2. [アーキテクチャ概観](#アーキテクチャ概観)
-3. [クイックスタート](#クイックスタート)
-4. [プロジェクト構造と命名規則](#プロジェクト構造と命名規則)
-5. [BPMN プロセス開発](#bpmn-プロセス開発)
-6. [アクターシステム](#アクターシステム)
-7. [データアクセス（Neo4j）](#データアクセスneo4j)
-8. [認証・認可](#認証認可)
-9. [監視・オブザーバビリティ](#監視オブザーバビリティ)
-10. [デプロイメント](#デプロイメント)
-11. [ベストプラクティス](#ベストプラクティス)
-12. [トラブルシューティング](#トラブルシューティング)
+1. [Overview and Features](#overview-and-features)
+2. [Architecture Overview](#architecture-overview)
+3. [Quick Start](#quick-start)
+4. [Project Structure and Naming Conventions](#project-structure-and-naming-conventions)
+5. [BPMN Process Development](#bpmn-process-development)
+6. [Actor System](#actor-system)
+7. [Data Access (Neo4j)](#data-access-neo4j)
+8. [Authentication & Authorization](#authentication--authorization)
+9. [Monitoring & Observability](#monitoring--observability)
+10. [Deployment](#deployment)
+11. [Best Practices](#best-practices)
+12. [Troubleshooting](#troubleshooting)
 
-## 🎯 概要と特徴
+## 🎯 Overview and Features
 
-Performer は、ビジネスプロセス管理（BPMN）、アクターシステム、Neo4j データベースを統合したフルスタック Web フレームワークです。Next.js のファイルベースルーティング、Remix の loader/action パターン、Effect の関数型プログラミングを組み合わせた独自のアーキテクチャを提供します。
+Performer is a full-stack web framework that integrates Business Process Management (BPMN), actor systems, and Neo4j databases. It provides a unique architecture that combines Next.js file-based routing, Remix's loader/action patterns, and Effect's functional programming.
 
-### 🚀 主な特徴
+### 🚀 Key Features
 
-- **BPMN 制御フロー**: ビジネスプロセスを視覚的に定義・実行
-- **アクターシステム**: サービスタスクの分散実行と障害耐性
-- **Neo4j 統合**: グラフデータベースによる柔軟なデータ管理
-- **型安全**: TypeScript + Zod によるエンドツーエンドの型安全性
-- **モノレポ**: pnpm + Turborepo による効率的な開発
-- **Human-in-the-Loop**: Camunda FormJS 統合によるフォーム操作
+- **BPMN Control Flow**: Visually define and execute business processes
+- **Actor System**: Distributed execution of service tasks with fault tolerance
+- **Neo4j Integration**: Flexible data management with graph databases
+- **Type Safety**: End-to-end type safety with TypeScript + Zod
+- **Monorepo**: Efficient development with pnpm + Turborepo
+- **Human-in-the-Loop**: Form operations with Camunda FormJS integration
 
-## 🏗️ アーキテクチャ概観
+## 🏗️ Architecture Overview
 
-### 技術スタック
+### Technology Stack
 
-| 層 | 技術 | 説明 |
+| Layer | Technology | Description |
 |----|------|------|
-| ルーティング | File-based Router | Next.js スタイルの `app/**/page.client.tsx` |
-| 境界管理 | Remix Actions | loader/action パターンによるサーバー/クライアント境界 |
-| 実行基盤 | Effect | 関数型プログラミングとエラーハンドリング |
-| プロセスエンジン | BPMN SDK | 制御フロー定義と実行 |
-| アクター | Effect Actor | サービスタスクの分散実行 |
-| データ | Neo4j + Neogma | 型安全な Cypher クエリ |
-| UI | React + Tailwind | モダンなユーザーインターフェース |
-| 認証 | Auth0 | RBAC/ABAC によるアクセス制御 |
-| 監視 | OpenTelemetry + Sentry | 分散トレーシングとエラーモニタリング |
-| フォーム | Camunda FormJS | Human-in-the-Loop フォーム |
+| Routing | File-based Router | Next.js style `app/**/page.client.tsx` |
+| Boundary Management | Remix Actions | Server/client boundary with loader/action patterns |
+| Execution Foundation | Effect | Functional programming and error handling |
+| Process Engine | BPMN SDK | Control flow definition and execution |
+| Actor | Effect Actor | Distributed execution of service tasks |
+| Data | Neo4j + Neogma | Type-safe Cypher queries |
+| UI | React + Tailwind | Modern user interface |
+| Authentication | Auth0 | Access control with RBAC/ABAC |
+| Monitoring | OpenTelemetry + Sentry | Distributed tracing and error monitoring |
+| Forms | Camunda FormJS | Human-in-the-loop forms |
 
-### プロジェクト構造
+### Project Structure
 
 ```
 performer/
 ├── packages/
-│   ├── router/          # Next.js スタイルのファイルベースルータ
-│   ├── actions/         # Remix loader/action + Auth0 ガード
-│   ├── process/         # BPMN SDK ラッパー
-│   ├── actor/           # Effect ベースのアクターシステム
-│   ├── data/            # Neo4j + Neogma アダプタ
-│   ├── dev-server/      # Vite SSR 開発サーバー
-│   ├── contracts/       # ts-rest + Zod スキーマ
+│   ├── router/          # Next.js style file-based router
+│   ├── actions/         # Remix loader/action + Auth0 guards
+│   ├── process/         # BPMN SDK wrapper
+│   ├── actor/           # Effect-based actor system
+│   ├── data/            # Neo4j + Neogma adapter
+│   ├── dev-server/      # Vite SSR development server
+│   ├── contracts/       # ts-rest + Zod schemas
 │   ├── observability/   # OpenTelemetry + Sentry
-│   └── cli/             # 開発ツール CLI
+│   └── cli/             # Development tools CLI
 ├── apps/
-│   └── examples/demo-app/  # サンプルアプリケーション
+│   └── examples/demo-app/  # Sample application
 ├── tools/
-│   └── turbo.json       # ビルド最適化設定
-└── docs/                # ドキュメント
+│   └── turbo.json       # Build optimization settings
+└── docs/                # Documentation
 ```
 
-## 🚀 クイックスタート
+## 🚀 Quick Start
 
-### 必要条件
+### Prerequisites
 
 - Node.js 18+
 - pnpm 8+
 - Neo4j 5.0+
-- Auth0 アカウント
+- Auth0 account
 
-### インストール
+### Installation
 
 ```bash
-# リポジトリをクローン
+# Clone repository
 git clone https://github.com/gftdcojp/performer.git
 cd performer
 
-# 依存関係をインストール
+# Install dependencies
 pnpm install
 
-# 開発サーバーを起動
+# Start development server
 pnpm dev
 ```
 
-### 設定
+### Configuration
 
-#### 1. Neo4j の設定
+#### 1. Neo4j Setup
 
 ```bash
-# Neo4j を起動
+# Start Neo4j
 docker run -d -p 7474:7474 -p 7687:7687 \
   -e NEO4J_AUTH=neo4j/password \
   neo4j:5.0
 ```
 
-#### 2. Auth0 の設定
+#### 2. Auth0 Setup
 
 ```typescript
 // packages/actions/src/config.ts
@@ -113,40 +113,40 @@ export const auth0Config = {
 }
 ```
 
-#### 3. 環境変数の設定
+#### 3. Environment Variables
 
 ```bash
 cp .env.example .env
-# .env を編集
+# Edit .env file
 ```
 
-## 📁 プロジェクト構造と命名規則
+## 📁 Project Structure and Naming Conventions
 
-### ファイル命名規則
+### File Naming Conventions
 
-| 種類 | 命名規則 | 例 |
-|------|----------|----|
-| ページ | `page.client.tsx` | `app/order/page.client.tsx` |
-| サーバーローダー | `loader.server.ts` | `app/order/loader.server.ts` |
-| サーバーアクション | `actions.server.ts` | `app/order/actions.server.ts` |
-| BPMN プロセス | `process.flow.ts` | `app/order/process.flow.ts` |
-| データモデル | `model.ts` | `app/order/model.ts` |
+| Type | Naming Convention | Example |
+|------|------------------|---------|
+| Page | `page.client.tsx` | `app/order/page.client.tsx` |
+| Server Loader | `loader.server.ts` | `app/order/loader.server.ts` |
+| Server Actions | `actions.server.ts` | `app/order/actions.server.ts` |
+| BPMN Process | `process.flow.ts` | `app/order/process.flow.ts` |
+| Data Model | `model.ts` | `app/order/model.ts` |
 
-### ディレクトリ構造
+### Directory Structure
 
 ```
 app/
 ├── [feature]/
-│   ├── page.client.tsx          # UI コンポーネント
-│   ├── loader.server.ts         # データ読み込み
-│   ├── actions.server.ts        # データ書き込み
-│   ├── process.flow.ts          # BPMN プロセス定義
-│   └── model.ts                 # データモデル
+│   ├── page.client.tsx          # UI components
+│   ├── loader.server.ts         # Data loading
+│   ├── actions.server.ts        # Data writing
+│   ├── process.flow.ts          # BPMN process definition
+│   └── model.ts                 # Data model
 ```
 
-## 🔄 BPMN プロセス開発
+## 🔄 BPMN Process Development
 
-### プロセス定義
+### Process Definition
 
 ```typescript
 // app/order/process.flow.ts
@@ -167,7 +167,7 @@ export const orderProcess = flow("OrderProcess", (p) => {
 });
 ```
 
-### ユーザータスク（Human-in-the-Loop）
+### User Tasks (Human-in-the-Loop)
 
 ```typescript
 // app/order/process.flow.ts
@@ -182,22 +182,22 @@ export const approvalProcess = flow("ApprovalProcess", (p) => {
           {
             type: "number",
             id: "amount",
-            label: "承認金額",
+            label: "Approval Amount",
             validate: { required: true }
           },
           {
             type: "select",
             id: "decision",
-            label: "承認判断",
+            label: "Approval Decision",
             values: [
-              { label: "承認", value: "approved" },
-              { label: "却下", value: "rejected" }
+              { label: "Approve", value: "approved" },
+              { label: "Reject", value: "rejected" }
             ]
           },
           {
             type: "textarea",
             id: "comments",
-            label: "コメント"
+            label: "Comments"
           }
         ]
       }
@@ -212,7 +212,7 @@ export const approvalProcess = flow("ApprovalProcess", (p) => {
 });
 ```
 
-### プロセス実行
+### Process Execution
 
 ```typescript
 // app/order/actions.server.ts
@@ -251,9 +251,9 @@ export async function completeApproval(input: ApprovalInput) {
 }
 ```
 
-## 🎭 アクターシステム
+## 🎭 Actor System
 
-### アクター定義
+### Actor Definition
 
 ```typescript
 // packages/actor/src/order-actor.ts
@@ -284,7 +284,7 @@ export const orderActor = actor<OrderActorState>("OrderActor", {
 
   effects: {
     onStartProcessing: async (state, ctx) => {
-      // 外部サービス呼び出しなど
+      // External service calls, etc.
       await ctx.callExternalService("process-order", {
         orderId: state.orderId
       });
@@ -293,7 +293,7 @@ export const orderActor = actor<OrderActorState>("OrderActor", {
 });
 ```
 
-### アクター使用
+### Actor Usage
 
 ```typescript
 // app/order/actions.server.ts
@@ -302,16 +302,16 @@ import { spawnActor, sendMessage } from "@pkg/actor";
 export async function processOrder(orderId: string) {
   const actorRef = await spawnActor(orderActor, orderId);
 
-  // アクターにメッセージ送信
+  // Send message to actor
   await sendMessage(actorRef, "startProcessing");
 
   return { actorId: actorRef.id };
 }
 ```
 
-## 🗄️ データアクセス（Neo4j）
+## 🗄️ Data Access (Neo4j)
 
-### モデル定義
+### Model Definition
 
 ```typescript
 // app/order/model.ts
@@ -336,7 +336,7 @@ export const OrderModel = model("Order", {
 });
 ```
 
-### クエリ実行
+### Query Execution
 
 ```typescript
 // app/order/loader.server.ts
@@ -353,10 +353,10 @@ export async function loader({ businessKey }: { businessKey: string }) {
 }
 ```
 
-### 複雑なクエリ
+### Complex Queries
 
 ```typescript
-// 関連データを含むクエリ
+// Query with related data
 export async function getOrderWithCustomer(orderId: string) {
   return q(OrderModel)
     .matchNode("o", { id: orderId })
@@ -365,7 +365,7 @@ export async function getOrderWithCustomer(orderId: string) {
     .one();
 }
 
-// 集計クエリ
+// Aggregation query
 export async function getOrderStats() {
   return q(OrderModel)
     .matchNode("o")
@@ -374,7 +374,7 @@ export async function getOrderStats() {
 }
 ```
 
-### トランザクション
+### Transactions
 
 ```typescript
 // app/order/actions.server.ts
@@ -382,7 +382,7 @@ import { withTx } from "@pkg/data/tx";
 
 export async function createOrder(input: OrderInput) {
   return withTx(async (tx) => {
-    // 注文作成
+    // Create order
     const order = await q(OrderModel)
       .create({
         businessKey: input.businessKey,
@@ -393,7 +393,7 @@ export async function createOrder(input: OrderInput) {
       .ret("o")
       .one({ tx });
 
-    // 顧客との関連作成
+    // Create relationship with customer
     await q()
       .matchNode("o", "Order", { id: order.id })
       .matchNode("c", "Customer", { id: input.customerId })
@@ -405,9 +405,9 @@ export async function createOrder(input: OrderInput) {
 }
 ```
 
-## 🔐 認証・認可
+## 🔐 Authentication & Authorization
 
-### Auth0 設定
+### Auth0 Configuration
 
 ```typescript
 // packages/actions/src/auth.ts
@@ -421,7 +421,7 @@ export const auth0 = initAuth0({
 });
 ```
 
-### 認可デコレータ
+### Authorization Guards
 
 ```typescript
 // packages/actions/src/guards.ts
@@ -435,7 +435,7 @@ export function authorize(permissions: string[]) {
       throw new Error("Unauthorized");
     }
 
-    // 権限チェック
+    // Permission check
     const userPermissions = session.user.permissions || [];
     const hasPermission = permissions.every(p =>
       userPermissions.includes(p)
@@ -450,7 +450,7 @@ export function authorize(permissions: string[]) {
 }
 ```
 
-### アクションでの使用
+### Usage in Actions
 
 ```typescript
 // app/order/actions.server.ts
@@ -459,7 +459,7 @@ import { authorize } from "@pkg/actions/guards";
 export async function createOrder(input: OrderInput) {
   const { user } = await authorize(["order:create"]);
 
-  // ユーザーに紐付けて注文作成
+  // Create order linked to user
   return withTx(async (tx) => {
     const order = await q(OrderModel)
       .create({
@@ -474,31 +474,31 @@ export async function createOrder(input: OrderInput) {
 }
 ```
 
-### RBAC/ABAC ポリシー
+### RBAC/ABAC Policies
 
 ```typescript
 // packages/actions/src/policies.ts
 export const orderPolicies = {
-  // RBAC: ロールベース
+  // RBAC: Role-based
   canCreateOrder: (user: User) =>
     user.roles.includes("order_manager") ||
     user.roles.includes("admin"),
 
-  // ABAC: 属性ベース
+  // ABAC: Attribute-based
   canApproveOrder: (user: User, order: Order) =>
     user.roles.includes("manager") &&
     order.amount <= user.approvalLimit,
 
-  // 組織ベース
+  // Organization-based
   canViewOrder: (user: User, order: Order) =>
     user.organizationId === order.organizationId ||
     user.roles.includes("admin")
 };
 ```
 
-## 📊 監視・オブザーバビリティ
+## 📊 Monitoring & Observability
 
-### OpenTelemetry 設定
+### OpenTelemetry Configuration
 
 ```typescript
 // packages/observability/src/tracing.ts
@@ -514,7 +514,7 @@ const exporter = new JaegerExporter({
 provider.addSpanProcessor(new BatchSpanProcessor(exporter));
 provider.register();
 
-// 自動計装
+// Auto-instrumentation
 registerInstrumentations({
   instrumentations: [
     new HttpInstrumentation(),
@@ -524,7 +524,7 @@ registerInstrumentations({
 });
 ```
 
-### メトリクス収集
+### Metrics Collection
 
 ```typescript
 // packages/observability/src/metrics.ts
@@ -547,7 +547,7 @@ export const orderMetrics = {
 };
 ```
 
-### エラーモニタリング
+### Error Monitoring
 
 ```typescript
 // packages/observability/src/error-monitoring.ts
@@ -572,7 +572,7 @@ export const captureError = (error: Error, context?: any) => {
 };
 ```
 
-### トレース使用
+### Trace Usage
 
 ```typescript
 // app/order/actions.server.ts
@@ -595,9 +595,9 @@ export async function processOrder(input: OrderInput) {
 }
 ```
 
-## 🚀 デプロイメント
+## 🚀 Deployment
 
-### Docker ビルド
+### Docker Build
 
 ```dockerfile
 # Dockerfile
@@ -630,7 +630,7 @@ EXPOSE 3000
 CMD ["pnpm", "start"]
 ```
 
-### Kubernetes デプロイ
+### Kubernetes Deployment
 
 ```yaml
 # k8s/deployment.yaml
@@ -670,7 +670,7 @@ spec:
             cpu: "500m"
 ```
 
-### 環境別設定
+### Environment-specific Configuration
 
 ```typescript
 // config/environments.ts
@@ -711,56 +711,56 @@ export const environments = {
 };
 ```
 
-## 📋 ベストプラクティス
+## 📋 Best Practices
 
-### 1. プロセス設計
+### 1. Process Design
 
-- **単一責任**: 各プロセスは1つのビジネス機能を担当
-- **適切な粒度**: プロセスを小さく保ち、再利用性を高める
-- **エラーハンドリング**: 各ステップで適切なエラーハンドリングを実装
+- **Single Responsibility**: Each process handles one business function
+- **Appropriate Granularity**: Keep processes small and reusable
+- **Error Handling**: Implement proper error handling at each step
 
-### 2. データモデリング
+### 2. Data Modeling
 
-- **グラフ思考**: Neo4j の特性を活かした関係中心の設計
-- **インデックス活用**: 頻繁に検索されるプロパティにインデックスを作成
-- **スキーマ制約**: データ整合性を保つための制約を定義
+- **Graph Thinking**: Design centered on relationships, leveraging Neo4j characteristics
+- **Index Utilization**: Create indexes on frequently searched properties
+- **Schema Constraints**: Define constraints to maintain data integrity
 
-### 3. アクター設計
+### 3. Actor Design
 
-- **メッセージ駆動**: アクター間はメッセージで通信
-- **障害耐性**: アクターの障害がシステム全体に影響しない設計
-- **リソース管理**: アクターのライフサイクルを適切に管理
+- **Message-driven**: Communication between actors via messages
+- **Fault Tolerance**: Design so actor failures don't affect the entire system
+- **Resource Management**: Properly manage actor lifecycle
 
-### 4. セキュリティ
+### 4. Security
 
-- **最小権限**: 必要な権限のみを付与
-- **入力検証**: すべての入力データを検証
-- **監査ログ**: 重要な操作をログに記録
+- **Least Privilege**: Grant only necessary permissions
+- **Input Validation**: Validate all input data
+- **Audit Logging**: Record important operations in logs
 
-### 5. パフォーマンス
+### 5. Performance
 
-- **クエリ最適化**: Cypher クエリを効率的に記述
-- **キャッシュ戦略**: 適切なキャッシュ層を実装
-- **非同期処理**: 重い処理は非同期で実行
+- **Query Optimization**: Write efficient Cypher queries
+- **Caching Strategy**: Implement appropriate caching layers
+- **Asynchronous Processing**: Execute heavy processing asynchronously
 
-## 🔧 トラブルシューティング
+## 🔧 Troubleshooting
 
-### 一般的な問題
+### Common Issues
 
-#### 1. Neo4j 接続エラー
+#### 1. Neo4j Connection Error
 
 ```bash
-# 接続テスト
+# Test connection
 curl http://localhost:7474/
 
-# ログ確認
+# Check logs
 docker logs neo4j-container
 ```
 
-#### 2. Auth0 設定エラー
+#### 2. Auth0 Configuration Error
 
 ```typescript
-// 設定確認
+// Verify configuration
 const auth0 = initAuth0({
   domain: process.env.AUTH0_DOMAIN,
   clientId: process.env.AUTH0_CLIENT_ID,
@@ -768,7 +768,7 @@ const auth0 = initAuth0({
   audience: process.env.AUTH0_AUDIENCE
 });
 
-// デバッグログ
+// Debug logging
 console.log('Auth0 config:', {
   domain: process.env.AUTH0_DOMAIN,
   clientId: process.env.AUTH0_CLIENT_ID?.substring(0, 10) + '...',
@@ -776,27 +776,27 @@ console.log('Auth0 config:', {
 });
 ```
 
-#### 3. BPMN プロセス実行エラー
+#### 3. BPMN Process Execution Error
 
 ```typescript
-// プロセス状態確認
+// Check process state
 const processInstance = await getProcessInstance(processInstanceId);
 console.log('Process state:', processInstance.state);
 
-// 変数確認
+// Check variables
 console.log('Process variables:', processInstance.variables);
 ```
 
-### デバッグツール
+### Debug Tools
 
-#### 開発時ログ
+#### Development Logging
 
 ```typescript
 // packages/observability/src/debug.ts
 import { logger } from "./logger";
 
 export const debug = {
-  // プロセス実行の詳細ログ
+  // Detailed process execution logging
   logProcessExecution: (processId: string, variables: any) => {
     logger.info(`Process ${processId} executed`, {
       variables,
@@ -804,7 +804,7 @@ export const debug = {
     });
   },
 
-  // データベースクエリログ
+  // Database query logging
   logQuery: (query: string, params: any, duration: number) => {
     logger.debug(`Query executed in ${duration}ms`, {
       query,
@@ -813,7 +813,7 @@ export const debug = {
     });
   },
 
-  // エラートレース
+  // Error tracing
   logError: (error: Error, context: any) => {
     logger.error('Error occurred', {
       error: error.message,
@@ -824,10 +824,10 @@ export const debug = {
 };
 ```
 
-#### テストヘルパー
+#### Test Helpers
 
 ```typescript
-// プロセス実行テスト
+// Process execution test
 export const testProcessExecution = async (processId: string, input: any) => {
   const tracer = await startProcess({
     processId,
@@ -835,13 +835,13 @@ export const testProcessExecution = async (processId: string, input: any) => {
     variables: input
   });
 
-  // プロセス完了まで待機
+  // Wait for process completion
   await waitForProcessCompletion(tracer.id);
 
   return tracer;
 };
 
-// データベース状態テスト
+// Database state test
 export const testDatabaseState = async (query: string) => {
   const result = await q().raw(query).run();
   console.table(result.records);
@@ -849,39 +849,39 @@ export const testDatabaseState = async (query: string) => {
 };
 ```
 
-### パフォーマンスチューニング
+### Performance Tuning
 
-#### 1. クエリ最適化
+#### 1. Query Optimization
 
 ```typescript
-// 非効率なクエリ
+// Inefficient query
 const badQuery = q(OrderModel)
   .matchNode("o")
   .matchRelationship("o", "BELONGS_TO", "c")
   .ret("o", "c")
   .many();
 
-// 最適化されたクエリ
+// Optimized query
 const goodQuery = q(OrderModel)
-  .matchNode("o", { status: "active" }) // 条件を追加
+  .matchNode("o", { status: "active" }) // Add condition
   .matchRelationship("o", "BELONGS_TO", "c")
   .ret("o", "c")
   .many();
 ```
 
-#### 2. インデックス作成
+#### 2. Index Creation
 
 ```cypher
-// Neo4j でインデックス作成
+// Create indexes in Neo4j
 CREATE INDEX order_business_key FOR (o:Order) ON (o.businessKey);
 CREATE INDEX order_status FOR (o:Order) ON (o.status);
 CREATE INDEX customer_email FOR (c:Customer) ON (c.email);
 ```
 
-#### 3. キャッシュ戦略
+#### 3. Caching Strategy
 
 ```typescript
-// Redis キャッシュ
+// Redis caching
 import { Redis } from "ioredis";
 
 const redis = new Redis(process.env.REDIS_URL);
@@ -905,13 +905,13 @@ export const cache = {
 };
 ```
 
-## 📚 追加リソース
+## 📚 Additional Resources
 
-- [公式ドキュメント](docs/)
-- [API リファレンス](docs/api-reference.md)
-- [サンプルアプリケーション](apps/examples/demo-app/)
-- [コミュニティ](https://github.com/gftdcojp/performer/discussions)
+- [Official Documentation](docs/)
+- [API Reference](docs/api-reference.md)
+- [Sample Applications](apps/examples/demo-app/)
+- [Community](https://github.com/gftdcojp/performer/discussions)
 
 ---
 
-このガイドは Performer Framework の包括的な使用方法を説明しています。実際の開発では、各パッケージの詳細な API ドキュメントを参照してください。
+This guide explains the comprehensive usage of the Performer Framework. For actual development, refer to the detailed API documentation of each package.
