@@ -3,6 +3,7 @@
 
 import BpmnModeler from 'bpmn-js/lib/Modeler'
 import BpmnViewer from 'bpmn-js/lib/Viewer'
+import { processErrorFactory, withErrorHandling, ErrorCodes } from '@pkg/error-handling'
 
 export interface ProcessDefinition {
   id: string
@@ -140,11 +141,27 @@ export class ProcessEngine {
   }
 
   async deployProcess(definition: ProcessDefinition): Promise<void> {
-    // Validate BPMN XML (skip in Node.js environment)
-    if (this.modeler) {
-      await this.modeler.importXML(definition.xml)
-    }
-    // In real implementation, store in database
+    return withErrorHandling(async () => {
+      // Validate BPMN XML (skip in Node.js environment)
+      if (this.modeler) {
+        try {
+          await this.modeler.importXML(definition.xml)
+        } catch (error) {
+          throw processErrorFactory.createError(
+            ErrorCodes.BPMN_VALIDATION_FAILED,
+            'Invalid BPMN XML',
+            'deployProcess',
+            {
+              cause: error as Error,
+              severity: 'high' as const,
+              suggestedAction: 'Check BPMN XML syntax and structure',
+              metadata: { processId: definition.id, processName: definition.name }
+            }
+          )
+        }
+      }
+      // In real implementation, store in database
+    }, processErrorFactory, 'deployProcess')
   }
 
   async startProcess(

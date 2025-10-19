@@ -3,6 +3,7 @@
 
 import { Neogma, ModelFactory } from 'neogma'
 import * as neo4j from 'neo4j-driver'
+import { dataErrorFactory, withErrorHandling, ErrorCodes } from '@pkg/error-handling'
 
 // Neo4j connection configuration
 export interface Neo4jConfig {
@@ -47,12 +48,19 @@ export class Neo4jConnection {
   }
 
   async verifyConnection(): Promise<void> {
-    const session = this.driver.session()
-    try {
-      await session.run('RETURN 1')
-    } finally {
-      await session.close()
-    }
+    return withErrorHandling(async () => {
+      const session = this.driver.session()
+      try {
+        await session.run('RETURN 1')
+      } catch (error) {
+        throw dataErrorFactory.databaseError('verifyConnection', error as Error, {
+          suggestedAction: 'Check Neo4j connection parameters and server status',
+          metadata: { config: { uri: this.config.uri, database: this.config.database } }
+        })
+      } finally {
+        await session.close()
+      }
+    }, dataErrorFactory, 'verifyConnection')
   }
 }
 

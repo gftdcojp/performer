@@ -60,9 +60,6 @@ const allProcessMetadata = {
   }
 };
 
-const [selectedProcessType, setSelectedProcessType] = useState<string>('order');
-const processMetadata = allProcessMetadata[selectedProcessType as keyof typeof allProcessMetadata];
-
 interface DashboardStats {
   totalProcesses: number;
   activeProcesses: number;
@@ -84,6 +81,9 @@ interface ProcessInstance {
 }
 
 export default function AdminDashboard() {
+  const [selectedProcessType, setSelectedProcessType] = useState<string>('order');
+  const processMetadata = allProcessMetadata[selectedProcessType as keyof typeof allProcessMetadata];
+
   const [stats, setStats] = useState<DashboardStats>({
     totalProcesses: 0,
     activeProcesses: 0,

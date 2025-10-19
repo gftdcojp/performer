@@ -2,6 +2,7 @@
 // Remix-style loader/action implementation with Auth0 guard and TypeScript validation
 
 import * as auth0 from 'auth0-js'
+import { actionsErrorFactory, withErrorHandling, ErrorCodes } from '@pkg/error-handling'
 
 export interface User {
   id: string
@@ -40,21 +41,26 @@ export class AuthGuard {
   }
 
   async authorize(requiredRoles: string[] = []): Promise<User> {
-    // Simplified auth check - in real implementation, validate JWT token
-    // This would integrate with Auth0 SDK for proper token validation
-    const mockUser: User = {
-      id: 'user-123',
-      email: 'user@example.com',
-      roles: ['user']
-    }
+    return withErrorHandling(async () => {
+      // Simplified auth check - in real implementation, validate JWT token
+      // This would integrate with Auth0 SDK for proper token validation
+      const mockUser: User = {
+        id: 'user-123',
+        email: 'user@example.com',
+        roles: ['user']
+      }
 
-    // Check roles
-    const hasRequiredRoles = requiredRoles.every(role => mockUser.roles.includes(role))
-    if (!hasRequiredRoles) {
-      throw new Error(`Missing required roles: ${requiredRoles.join(', ')}`)
-    }
+      // Check roles
+      const hasRequiredRoles = requiredRoles.every(role => mockUser.roles.includes(role))
+      if (!hasRequiredRoles) {
+        throw actionsErrorFactory.authFailed('authorize', {
+          suggestedAction: `Required roles: ${requiredRoles.join(', ')}`,
+          metadata: { requiredRoles, userRoles: mockUser.roles }
+        })
+      }
 
-    return mockUser
+      return mockUser
+    }, actionsErrorFactory, 'authorize', { retries: 1 })
   }
 
   async getToken(): Promise<string> {
