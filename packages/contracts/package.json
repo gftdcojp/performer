@@ -1,36 +1,36 @@
 {
-  "name": "@pkg/contracts",
-  "version": "1.0.0",
-  "description": "ts-rest + Zod schemas for I/O boundaries",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    }
-  },
-  "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "lint": "biome check .",
-    "format": "biome format --write .",
-    "test": "vitest run",
-    "clean": "rm -rf dist"
-  },
-  "keywords": ["contracts", "ts-rest", "zod", "api"],
-  "license": "MIT",
-  "devDependencies": {
-    "@biomejs/biome": "^1.8.3",
-    "@types/node": "^20.14.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.5.0",
-    "vitest": "^1.6.0"
-  },
-  "dependencies": {
-    "@ts-rest/core": "^3.45.0",
-    "zod": "^3.23.0"
-  }
+	"name": "@pkg/contracts",
+	"version": "1.0.0",
+	"description": "ts-rest + Zod schemas for I/O boundaries",
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"test": "vitest run",
+		"clean": "rm -rf dist"
+	},
+	"keywords": ["contracts", "ts-rest", "zod", "api"],
+	"license": "MIT",
+	"devDependencies": {
+		"@biomejs/biome": "^1.8.3",
+		"@types/node": "^20.14.0",
+		"tsup": "^8.0.0",
+		"typescript": "^5.5.0",
+		"vitest": "^1.6.0"
+	},
+	"dependencies": {
+		"@ts-rest/core": "^3.45.0",
+		"zod": "^3.23.0"
+	}
 }

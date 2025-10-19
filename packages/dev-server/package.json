@@ -1,36 +1,36 @@
 {
-  "name": "@pkg/dev-server",
-  "version": "1.0.0",
-  "description": "Vite SSR dev server for .server.ts evaluation and props injection to page.client.tsx",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    }
-  },
-  "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "lint": "biome check .",
-    "format": "biome format --write .",
-    "test": "vitest run",
-    "clean": "rm -rf dist"
-  },
-  "keywords": ["dev-server", "vite", "ssr"],
-  "license": "MIT",
-  "devDependencies": {
-    "@biomejs/biome": "^1.8.3",
-    "@types/node": "^20.14.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.5.0",
-    "vitest": "^1.6.0"
-  },
-  "dependencies": {
-    "vite": "^5.3.0",
-    "@vitejs/plugin-react": "^4.3.0"
-  }
+	"name": "@pkg/dev-server",
+	"version": "1.0.0",
+	"description": "Vite SSR dev server for .server.ts evaluation and props injection to page.client.tsx",
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"test": "vitest run",
+		"clean": "rm -rf dist"
+	},
+	"keywords": ["dev-server", "vite", "ssr"],
+	"license": "MIT",
+	"devDependencies": {
+		"@biomejs/biome": "^1.8.3",
+		"@types/node": "^20.14.0",
+		"tsup": "^8.0.0",
+		"typescript": "^5.5.0",
+		"vitest": "^1.6.0"
+	},
+	"dependencies": {
+		"vite": "^5.3.0",
+		"@vitejs/plugin-react": "^4.3.0"
+	}
 }
