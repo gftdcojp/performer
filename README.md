@@ -12,7 +12,7 @@ Performer は、ビジネスプロセス管理（BPMN）、アクターシステ
 - **アクターシステム**: サービスタスクの分散実行と障害耐性
 - **Neo4j 統合**: グラフデータベースによる柔軟なデータ管理
 - **型安全**: TypeScript + Zod によるエンドツーエンドの型安全性
-- **モノレポ**: pnpm + Turborepo による効率的な開発
+- **モジュール設計**: npm パッケージとして提供される独立したコンポーネント
 
 ## アーキテクチャ
 
@@ -30,48 +30,40 @@ Performer は、ビジネスプロセス管理（BPMN）、アクターシステ
 | 認証 | Auth0 | RBAC/ABAC によるアクセス制御 |
 | 監視 | OpenTelemetry + Sentry | 分散トレーシングとエラーモニタリング |
 
-### プロジェクト構造
+### パッケージ構成
 
-```
-performer/
-├── packages/
-│   ├── router/          # Next.js スタイルのファイルベースルータ
-│   ├── actions/         # Remix loader/action + Auth0 ガード
-│   ├── process/         # BPMN SDK ラッパー
-│   ├── actor/           # Effect ベースのアクターシステム
-│   ├── data/            # Neo4j + Neogma アダプタ
-│   ├── dev-server/      # Vite SSR 開発サーバー
-│   ├── contracts/       # ts-rest + Zod スキーマ
-│   ├── observability/   # OpenTelemetry + Sentry
-│   └── cli/             # 開発ツール CLI
-├── apps/
-│   └── examples/demo-app/  # サンプルアプリケーション
-├── tools/
-│   └── turbo.json       # ビルド最適化設定
-└── docs/                # ドキュメント
-```
+Performer は以下の npm パッケージを提供します：
+
+- `@gftdcojp/performer` - 統合パッケージ（すべての機能をバンドル）
+- `@gftdcojp/performer/actions` - Remix loader/action + Auth0 ガード
+- `@gftdcojp/performer/actor` - Effect ベースのアクターシステム
+- `@gftdcojp/performer/data` - Neo4j + Neogma アダプタ
+- `@gftdcojp/performer/error-handling` - 統合エラーハンドリングシステム
+- `@gftdcojp/performer/process` - BPMN SDK ラッパー
+- `@gftdcojp/performer/router` - Next.js スタイルのファイルベースルータ
 
 ## クイックスタート
 
 ### 必要条件
 
 - Node.js 18+
-- pnpm 8+
+- npm または pnpm
 - Neo4j 5.0+
 - Auth0 アカウント
 
 ### インストール
 
 ```bash
-# リポジトリをクローン
-git clone https://github.com/gftdcojp/performer.git
-cd performer
+# 新しいプロジェクトを作成
+mkdir my-performer-app
+cd my-performer-app
+npm init -y
 
-# 依存関係をインストール
-pnpm install
+# Performer パッケージをインストール
+npm install @gftdcojp/performer --registry=https://npm.pkg.github.com
 
-# 開発サーバーを起動
-pnpm dev
+# または pnpm を使用
+pnpm add @gftdcojp/performer --registry=https://npm.pkg.github.com
 ```
 
 ### 設定
@@ -86,7 +78,7 @@ pnpm dev
 
 2. **Auth0 の設定**
    ```typescript
-   // packages/actions/src/config.ts
+   // src/config.ts
    export const auth0Config = {
      domain: 'your-domain.auth0.com',
      clientID: 'your-client-id',
@@ -96,156 +88,307 @@ pnpm dev
 
 3. **環境変数の設定**
    ```bash
-   cp .env.example .env
-   # .env を編集
+   # .env ファイルを作成
+   echo "NEO4J_URI=bolt://localhost:7687" > .env
+   echo "NEO4J_USER=neo4j" >> .env
+   echo "NEO4J_PASSWORD=password" >> .env
+   echo "AUTH0_DOMAIN=your-domain.auth0.com" >> .env
+   echo "AUTH0_CLIENT_ID=your-client-id" >> .env
    ```
 
 ## 使用方法
 
+### 基本的な使用例
+
+```typescript
+// src/index.ts
+import {
+  createUser,
+  createProcessInstance,
+  generateId,
+  VERSION
+} from '@gftdcojp/performer';
+
+console.log('Performer version:', VERSION);
+
+// ユーザー作成
+const user = createUser('user-123', 'user@example.com', ['admin']);
+console.log('Created user:', user);
+
+// プロセスインスタンス作成
+const processInstance = createProcessInstance('order-process', 'business-123');
+console.log('Created process:', processInstance);
+
+// ID生成
+const newId = generateId('order');
+console.log('Generated ID:', newId);
+```
+
 ### BPMN プロセスの定義
 
 ```typescript
-// app/order/process.flow.ts
-import { flow } from "@pkg/process";
+// src/processes/orderProcess.ts
+import { ProcessBuilder } from "@gftdcojp/performer";
 
-export const orderProcess = flow("OrderProcess", (p) => {
-  p.startEvent("OrderReceived")
-    .serviceTask("ValidateOrder")
-    .exclusiveGateway("AmountCheck")
-      .when("low", { expr: "${vars.amount <= 1000}" })
-        .serviceTask("AutoApprove")
-        .moveTo("Payment")
-      .otherwise()
-        .userTask("ManagerApproval")
-        .moveTo("Payment")
-    .serviceTask("Payment")
-    .endEvent("Completed");
-});
+export const orderProcess = new ProcessBuilder("OrderProcess", "Order Processing")
+  .startEvent("OrderReceived")
+  .userTask("ReviewOrder", "Review Order Details")
+  .exclusiveGateway("ApprovalCheck")
+    .condition("amount <= 1000", "AutoApprove")
+    .otherwise("ManagerApproval")
+  .serviceTask("ProcessPayment")
+  .endEvent("Completed")
+  .build();
 ```
 
-### サーバーサイド処理
+### データベース操作
 
 ```typescript
-// app/order/loader.server.ts
-"use server";
+// src/database/setup.ts
+import {
+  createNeo4jConnection,
+  createTransactionManager,
+  createSchemaManager
+} from '@gftdcojp/performer';
 
-import { q } from "@pkg/data/effect-cypher";
-
-export async function loader({ businessKey }: { businessKey: string }) {
-  return q().matchNode("o", "Order", { businessKey }).ret("o").one();
-}
-```
-
-### アクションの定義
-
-```typescript
-// app/order/actions.server.ts
-"use server";
-
-import { z } from "zod";
-import { withTx } from "@pkg/data/tx";
-import { startProcess } from "@pkg/process";
-import { authorize } from "@pkg/actions/auth";
-
-const StartOrder = z.object({
-  businessKey: z.string(),
-  amount: z.number().positive()
+// Neo4j 接続設定
+const connection = createNeo4jConnection({
+  uri: process.env.NEO4J_URI!,
+  username: process.env.NEO4J_USER!,
+  password: process.env.NEO4J_PASSWORD!
 });
 
-export async function startOrder(input: unknown) {
-  const { user } = await authorize(["order:create"]);
-  const args = StartOrder.parse(input);
+// トランザクションマネージャー
+const txManager = createTransactionManager(connection);
 
-  return withTx(async (tx) => {
-    await startProcess({
-      processId: "OrderProcess",
-      businessKey: args.businessKey,
-      variables: { amount: args.amount, userId: user.id }
-    }, { tx });
+// スキーママネージャー
+const schemaManager = createSchemaManager(connection);
 
-    return { ok: true } as const;
-  });
-}
+// スキーマ作成
+await schemaManager.createConstraints();
 ```
 
-### UI コンポーネント
+### アクターシステム
 
-```tsx
-// app/order/page.client.tsx
-"use client";
+```typescript
+// src/actors/orderActor.ts
+import {
+  EffectActorSystem,
+  createBPMNBridge,
+  ServiceTaskActor
+} from '@gftdcojp/performer';
 
-import { useLoaderData } from "@pkg/router";
+// アクターシステム作成
+const system = new EffectActorSystem();
 
-export default function OrderPage() {
-  const data = useLoaderData();
+// BPMN ブリッジ作成
+const bridge = createBPMNBridge(system);
 
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">注文処理</h1>
-      {/* UI コンポーネント */}
-    </div>
-  );
-}
+// サービスタスク実行
+await bridge.executeServiceTask(
+  'order-123',
+  'validate-payment',
+  async () => {
+    // 決済検証ロジック
+    return { status: 'approved' };
+  }
+);
 ```
 
-## 開発
+### エラーハンドリング
 
-### 利用可能なスクリプト
+```typescript
+// src/errorHandling/setup.ts
+import {
+  createErrorFactory,
+  globalRecoveryManager
+} from '@gftdcojp/performer';
+
+// エラーファクトリー作成
+const errorFactory = createErrorFactory('my-app');
+
+// リカバリー戦略登録
+globalRecoveryManager.registerStrategy('NETWORK_ERROR', {
+  name: 'retry-network',
+  description: 'Network error retry strategy',
+  execute: async (error) => {
+    // リトライロジック
+    return true;
+  }
+});
+
+// エラー生成
+const error = errorFactory.networkError('api-call', new Error('Connection failed'));
+```
+
+### 認証とアクション
+
+```typescript
+// src/actions/auth.ts
+import { createActions } from '@gftdcojp/performer';
+
+// Auth0 設定
+const auth0Config = {
+  domain: 'your-domain.auth0.com',
+  clientID: 'your-client-id',
+  audience: 'your-api-identifier'
+};
+
+// アクションビルダー作成
+export const actions = createActions(auth0Config);
+
+// ロールベースのアクション定義
+export const secureActions = actions.roles('admin', 'manager');
+```
+
+### ルーティング
+
+```typescript
+// src/router/setup.ts
+import { FileRouter, SSRPipeline } from '@gftdcojp/performer';
+
+// ルーター設定
+const routerConfig = {
+  basePath: '/app',
+  appDir: './src/pages'
+};
+
+// ファイルルーター作成
+const router = new FileRouter(routerConfig);
+
+// SSR パイプライン作成
+const ssrPipeline = new SSRPipeline(router);
+
+// ページレンダリング
+const result = await ssrPipeline.render('/orders/123');
+```
+
+## API リファレンス
+
+### 主要なエクスポート
+
+```typescript
+import {
+  // バージョン情報
+  VERSION,
+  FRAMEWORK_NAME,
+
+  // 基本型
+  User,
+  ProcessInstance,
+
+  // ファクトリ関数
+  createUser,
+  createProcessInstance,
+  generateId,
+  isCompleted,
+  isRunning,
+
+  // Neo4j データベース
+  createNeo4jConnection,
+  createTransactionManager,
+  createProcessInstanceRepository,
+  createSchemaManager,
+
+  // アクターシステム
+  EffectActorSystem,
+  createBPMNBridge,
+  ServiceTaskActor,
+
+  // BPMN プロセス
+  ProcessBuilder,
+
+  // エラーハンドリング
+  createErrorFactory,
+  globalRecoveryManager,
+
+  // 認証・アクション
+  createActions,
+
+  // ルーティング
+  FileRouter,
+  SSRPipeline
+} from '@gftdcojp/performer';
+```
+
+## プロジェクトテンプレート
+
+新しい Performer プロジェクトを素早く始めるためのテンプレート：
 
 ```bash
-# 開発サーバー起動
-pnpm dev
-
-# ビルド
-pnpm build
-
-# テスト実行
-pnpm test
-
-# リント
-pnpm lint
-
-# フォーマット
-pnpm format
+# テンプレートを使用（準備中）
+npx create-performer-app my-app
+cd my-app
+npm install
+npm run dev
 ```
 
-### パッケージの開発
+## トラブルシューティング
 
-各パッケージは独立して開発・テスト可能です：
+### 一般的な問題
 
+**GitHub Packages への認証エラー**
 ```bash
-# 特定のワークスペースで作業
-cd packages/router
-pnpm build
-pnpm test
+# PAT を設定
+npm config set //npm.pkg.github.com/:_authToken YOUR_TOKEN
 ```
 
-## デモアプリケーション
-
-`apps/examples/demo-app/` には注文から承認・決済までの完全な BPMN プロセスを実装したデモが含まれています。
-
+**Neo4j 接続エラー**
 ```bash
-cd apps/examples/demo-app
-pnpm dev
+# 接続情報を確認
+docker ps | grep neo4j
+curl http://localhost:7474
+```
+
+**BPMN プロセス実行エラー**
+```typescript
+// エラーハンドリングを有効化
+import { createErrorFactory } from '@gftdcojp/performer';
+const errorFactory = createErrorFactory('my-app');
 ```
 
 ## ドキュメント
 
-詳細なドキュメントは [docs/](docs/) ディレクトリを参照してください。
+詳細なドキュメントは以下の場所で参照できます：
 
-- [アーキテクチャ概要](docs/architecture.md)
-- [BPMN プロセス開発ガイド](docs/bpmn-guide.md)
-- [アクターシステム](docs/actor-system.md)
-- [データアクセス](docs/data-access.md)
-- [デプロイメント](docs/deployment.md)
+- [GitHub リポジトリ](https://github.com/gftdcojp/performer)
+- [API リファレンス](https://github.com/gftdcojp/performer#readme)
+- [サンプルコード](https://github.com/gftdcojp/performer/tree/main/apps/examples)
 
 ## 貢献
 
-1. このリポジトリをフォーク
-2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'Add amazing feature'`)
-4. ブランチをプッシュ (`git push origin feature/amazing-feature`)
-5. Pull Request を作成
+Performer の開発にご協力いただける場合：
+
+1. [GitHub Issues](https://github.com/gftdcojp/performer/issues) でバグ報告や機能リクエスト
+2. [GitHub Discussions](https://github.com/gftdcojp/performer/discussions) で質問や議論
+3. ソースコードの改善提案は Pull Request へ
+
+### 開発環境のセットアップ
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/gftdcojp/performer.git
+cd performer
+
+# 依存関係をインストール
+pnpm install
+
+# 開発サーバーを起動
+pnpm dev
+
+# パッケージのビルド
+pnpm build
+```
+
+## バージョン履歴
+
+### v1.0.0 (Latest)
+- 🎉 初回リリース
+- BPMN プロセスエンジン統合
+- Neo4j データベースアダプタ
+- Effect ベースのアクターシステム
+- Auth0 認証統合
+- TypeScript 型安全 API
 
 ## ライセンス
 
@@ -253,8 +396,21 @@ MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照してくださ�
 
 ## 謝辞
 
+Performer は以下の優れたオープンソースプロジェクトの上に構築されています：
+
 - [Next.js](https://nextjs.org/) - ファイルベースルーティングのインスピレーション
 - [Remix](https://remix.run/) - loader/action パターンの参考
 - [Effect](https://effect.website/) - 関数型プログラミング基盤
 - [BPMN.io](https://bpmn.io/) - BPMN 処理ライブラリ
 - [Neo4j](https://neo4j.com/) - グラフデータベース
+- [Auth0](https://auth0.com/) - 認証・認可サービス
+
+---
+
+<div align="center">
+
+**Performer** - BPMN + Actor + Neo4j Web Framework
+
+[📦 npm](https://npm.pkg.github.com/@gftdcojp/performer) • [📚 Docs](https://github.com/gftdcojp/performer#readme) • [🐛 Issues](https://github.com/gftdcojp/performer/issues)
+
+</div>
