@@ -4,7 +4,7 @@
   "description": "Demo app: order->approval->payment BPMN process",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 8100",
     "build": "node scripts/check-structure.js && vite build",
     "preview": "vite preview",
     "performer:dev": "performer dev --app=demo-app",
