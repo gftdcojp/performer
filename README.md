@@ -23,6 +23,9 @@ Performer is a full-stack web framework that integrates Business Process Managem
 - **BPMN Control Flow**: Visually define and execute business processes
 - **Actor System**: Distributed execution of service tasks with fault tolerance
 - **Neo4j Integration**: Flexible data management with graph database
+- **RPC Framework**: Type-safe procedure calls with I/O validation, streaming, and observability
+- **Auth0 Integration**: JWT-based authentication with automatic claim extraction
+- **Real-time Streaming**: WebSocket and Server-Sent Events for live updates
 - **UI Components Library**: Next.js Link wrapper with active state detection and type validation
 - **Type Safety**: End-to-end type safety with TypeScript + Zod
 - **Modular Design**: Independent components provided as npm packages
@@ -45,7 +48,9 @@ Performer is a full-stack web framework that integrates Business Process Managem
 | **Data** | Neo4j + Neogma | Type-safe Cypher queries |
 | **UI Components** | React + Next.js Link | Enhanced navigation with active state detection |
 | **UI** | React + Tailwind | Modern user interface |
-| **Authentication** | Auth0 | RBAC/ABAC access control |
+| **RPC Framework** | Custom RPC Layer | Type-safe procedure calls with I/O validation |
+| **Authentication** | Auth0 | RBAC/ABAC access control with JWT integration |
+| **Streaming** | WebSocket + SSE | Real-time event streaming and subscriptions |
 | **Monitoring** | OpenTelemetry + Sentry | Distributed tracing and error monitoring |
 
 ### Package Structure
@@ -54,6 +59,7 @@ Performer provides the following npm packages:
 
 - `@gftdcojp/performer` - Integration package (bundles all features)
 - `@gftdcojp/performer-cli` - Next.js-style CLI with create, dev, build commands
+- `@gftdcojp/performer-rpc` - Thin RPC layer with I/O validation, streaming, and observability
 - `@gftdcojp/performer-ui` - UI components library with Next.js Link wrapper
 - `@gftdcojp/performer-actions` - Remix loader/action + Auth0 guards
 - `@gftdcojp/performer-actor` - Effect-based actor system
@@ -273,6 +279,66 @@ performer telemetry disable
 - Parallel builds and caching
 - Workspace dependency management
 - Cross-package optimizations
+
+## 📦 Package Details
+
+### @gftdcojp/performer-rpc
+
+**Thin RPC layer for procedure registration and dispatch with I/O validation, streaming, and observability**
+
+#### Features
+- **Type-Safe Client SDK**: Generate type-safe fetch clients from router metadata
+- **Auth0 JWT Integration**: Automatic claim extraction and context injection
+- **Real-Time Streaming**: WebSocket and Server-Sent Events support
+- **OpenTelemetry Metrics**: Distributed tracing and performance monitoring
+- **I/O Validation**: Zod-based request/response validation
+- **Error Standardization**: Structured error handling with correlation IDs
+
+#### Usage
+
+```typescript
+import {
+  createRouter,
+  createHttpHandler,
+  createClient,
+  createContextFromRequestWithAuth
+} from "@gftdcojp/performer-rpc";
+
+// Create router with procedures
+const router = createRouter<Context>()
+  .add("user.create", async (ctx, input) => {
+    // Business logic here
+    return { id: "123", ...input };
+  });
+
+// HTTP handler with Auth0 integration
+const handleRequest = createHttpHandler(router, async (req) => {
+  return createContextFromRequestWithAuth(req);
+});
+
+// Type-safe client
+const client = createClient(router, {
+  baseUrl: "http://api.example.com/rpc"
+});
+
+const result = await client["user.create"]({
+  name: "John Doe",
+  email: "john@example.com"
+});
+```
+
+#### Streaming Support
+
+```typescript
+import { createWebSocketHandler, globalEventBroker } from "@gftdcojp/performer-rpc";
+
+const wsHandler = createWebSocketHandler(router, globalEventBroker);
+
+// WebSocket connection enables:
+// - RPC calls over WebSocket
+// - Real-time event subscriptions
+// - Automatic reconnection and heartbeats
+```
 
 ## 🎮 Examples & Demos
 
@@ -699,12 +765,13 @@ Performer follows **State-Space Software Design** principles:
 - 🏗️ **State-Space Architecture**: Domain-driven hexagonal architecture implementation
 - ⚡ **Next.js-Style CLI**: Full development toolchain (create/dev/build/start/gen/db/info/telemetry)
 - 🚀 **Modern Development Stack**: Vite + HMR, TypeScript 5.9, Tailwind CSS, Biome
-- 📦 **Modular Package Ecosystem**: 8 npm packages published to GitHub Packages
+- 📦 **Modular Package Ecosystem**: 9 npm packages published to GitHub Packages
 - 🔄 **Monorepo Excellence**: Turborepo integration with parallel builds and caching
 - 🎨 **Automated Project Generation**: React 18 + TypeScript app templates
 - 🗄️ **Graph Database Integration**: Neo4j with type-safe Cypher queries via Neogma
 - 🎭 **Distributed Actor System**: Effect-based service task execution with fault tolerance
 - 🔐 **Enterprise Authentication**: Auth0 RBAC/ABAC with Remix-style actions
+- 📡 **RPC Framework**: Type-safe procedure calls with I/O validation, streaming, and observability
 - 📊 **Observability**: OpenTelemetry + Sentry distributed tracing and monitoring
 - 🎯 **BPMN Process Engine**: Complete business process automation with custom DSL
 - 🎨 **UI Components**: Next.js Link wrapper with active state detection and Zod validation

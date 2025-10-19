@@ -17,6 +17,7 @@
   "packageManager": "pnpm@10.18.3",
   "scripts": {
     "build": "turbo run build",
+    "build:types": "turbo run build:types",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "turbo run format",
