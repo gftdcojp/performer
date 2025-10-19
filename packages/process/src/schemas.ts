@@ -2,28 +2,30 @@
 import * as S from "@effect/schema/Schema";
 import { TASKS } from "./types";
 
-export const TaskNameSchema = S.union(...TASKS.map(S.literal));
-export const TaskInfoSchema = S.struct({
-  category: S.string,
-  assignee: S.optional(S.string),
-  priority: S.optional(S.union(S.literal("low"), S.literal("normal"), S.literal("high"), S.literal("critical")))
+export const TaskNameSchema = S.Union(...TASKS.map(S.Literal));
+export const TaskInfoSchema = S.Struct({
+  category: S.String,
+  assignee: S.optional(S.String),
+  priority: S.optional(S.Union(S.Literal("low"), S.Literal("normal"), S.Literal("high"), S.Literal("critical")))
 });
 
-export const ProcessMetadataSchema = S.struct({
-  id: S.string,
-  name: S.string,
-  categories: S.record(S.string, S.struct({ name: S.string, color: S.string, description: S.string })),
-  tasks: S.record(TaskNameSchema, TaskInfoSchema).pipe(S.partial)
+export const ProcessMetadataSchema = S.Struct({
+  id: S.String,
+  name: S.String,
+  categories: S.Record(S.String, S.Struct({ name: S.String, color: S.String, description: S.String })),
+  // allow sparse task maps (Record in @effect/schema does not require all keys to exist)
+  tasks: S.Record(TaskNameSchema, TaskInfoSchema)
 });
 
-export const StatsSchema = S.struct({
-  totalProcesses: S.number,
-  activeProcesses: S.number,
-  completedToday: S.number,
-  averageProcessingTime: S.string,
-  slaCompliance: S.number,
-  taskDistribution: S.record(TaskNameSchema, S.number).pipe(S.partial),
-  categoryStats: S.record(S.string, S.struct({ total: S.number, completed: S.number, avgTime: S.number }))
+export const StatsSchema = S.Struct({
+  totalProcesses: S.Number,
+  activeProcesses: S.Number,
+  completedToday: S.Number,
+  averageProcessingTime: S.String,
+  slaCompliance: S.Number,
+  // sparse distribution map
+  taskDistribution: S.Record(TaskNameSchema, S.Number),
+  categoryStats: S.Record(S.String, S.Struct({ total: S.Number, completed: S.Number, avgTime: S.Number }))
 });
 
 

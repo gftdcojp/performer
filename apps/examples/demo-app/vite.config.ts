@@ -8,7 +8,8 @@ export default defineConfig({
 	resolve: {
 		alias: {
 			"@": resolve(__dirname, "./app"),
-			"@pkg": resolve(__dirname, "../../../packages"),
+      "@pkg": resolve(__dirname, "../../../packages"),
+      "@pkg/process": resolve(__dirname, "../../../packages/process/src"),
 		},
 	},
 	server: {

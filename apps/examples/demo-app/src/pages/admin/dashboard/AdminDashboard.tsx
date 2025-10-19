@@ -4,6 +4,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { TASKS, type DashboardStats } from "@pkg/process";
 
 // Process metadata for all integrated processes (client-side copy)
 const allProcessMetadata = {
@@ -168,18 +169,7 @@ const allProcessMetadata = {
 	},
 };
 
-interface DashboardStats {
-	totalProcesses: number;
-	activeProcesses: number;
-	completedToday: number;
-	averageProcessingTime: string;
-	slaCompliance: number;
-	taskDistribution: Record<string, number>;
-	categoryStats: Record<
-		string,
-		{ total: number; completed: number; avgTime: number }
-	>;
-}
+// DashboardStats is imported from @pkg/process
 
 interface ProcessInstance {
 	id: string;
@@ -550,27 +540,28 @@ export default function AdminDashboard() {
 					{/* Active Tasks */}
 					<div className="bg-white rounded-lg shadow p-6">
 						<h2 className="text-xl font-semibold mb-4">Active Tasks by Type</h2>
-						<div className="space-y-3">
-							{Object.entries(stats.taskDistribution).map(
-								([taskName, count]) => (
-									<div
-										key={taskName}
-										className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-									>
-										<div className="flex items-center">
-											<div className="w-3 h-3 rounded-full mr-3 bg-blue-500" />
-											<div>
-												<p className="font-medium text-gray-900">{taskName}</p>
-												<p className="text-sm text-gray-600">Active Tasks</p>
-											</div>
-										</div>
-										<div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
-											{count}
-										</div>
-									</div>
-								),
-							)}
-						</div>
+                        <div className="space-y-3">
+                            {TASKS.map((taskName) => {
+                                const count = (stats.taskDistribution as any)[taskName] ?? 0;
+                                return (
+                                    <div
+                                        key={taskName}
+                                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                                    >
+                                        <div className="flex items-center">
+                                            <div className="w-3 h-3 rounded-full mr-3 bg-blue-500" />
+                                            <div>
+                                                <p className="font-medium text-gray-900">{taskName}</p>
+                                                <p className="text-sm text-gray-600">Active Tasks</p>
+                                            </div>
+                                        </div>
+                                        <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
+                                            {count}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
 					</div>
 				</div>
 
