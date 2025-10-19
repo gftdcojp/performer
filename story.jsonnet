@@ -169,11 +169,20 @@
 
     router: {
       id: "pkg_router",
-      description: "Client-side routing utilities",
+      description: "File-based router with SSR pipeline and layout/page composition",
       dependencies: ["error-handling"],
-      provides: ["navigation", "route-guards"],
+      provides: [
+        "file-based-matching",
+        "ssr-loader/action integration",
+        "layout-composition",
+        "page.client.tsx fallback to page.tsx"
+      ],
       status: "implemented",
-      recentChanges: ["Renamed to @gftdcojp/performer-router and added publishConfig.registry"]
+      recentChanges: [
+        "Added Next.js-like layout discovery and composition",
+        "Added page.tsx fallback when page.client.tsx is absent",
+        "Exported FileRouter and SSRPipeline from package entry"
+      ]
     },
 
     ui: {

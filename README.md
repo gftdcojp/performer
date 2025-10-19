@@ -40,7 +40,7 @@ Performer is a full-stack web framework that integrates Business Process Managem
 |-------|------------|-------------|
 | **CLI & Tooling** | Custom CLI + Turborepo | Next.js-style commands, monorepo orchestration |
 | **Development** | Vite + TypeScript | Hot reloading, type safety, modern tooling |
-| **Routing** | File-based Router | Next.js style `app/**/page.client.tsx` |
+| **Routing** | File-based Router | Next.js style `app/**/{page.client.tsx|page.tsx}` + `layout(.client).tsx` composition |
 | **Boundary Management** | Remix Actions | Server/client boundary with loader/action patterns |
 | **Execution Foundation** | Effect | Functional programming and error handling |
 | **Process Engine** | BPMN SDK | Control flow definition and execution |
@@ -533,6 +533,23 @@ const ssrPipeline = new SSRPipeline(router);
 // Render page
 const result = await ssrPipeline.render('/orders/123');
 ```
+
+#### File structure and resolution
+
+```
+app/
+  layout.tsx               // optional root layout (or layout.client.tsx)
+  orders/
+    layout.client.tsx      // optional nested layout (preferred client version)
+    page.client.tsx        // preferred page entry
+    page.tsx               // fallback page entry when client file is absent
+    loader.server.ts       // optional SSR data loader (returns props)
+    action.server.ts       // optional server action
+```
+
+- Page resolution: `page.client.tsx` → fallback to `page.tsx` if not present
+- Layout discovery: ascend directories and compose `layout.client.tsx` → fallback to `layout.tsx`
+- Composition order: root layout → nested layouts → page
 
 ### UI Components
 
