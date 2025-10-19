@@ -45,6 +45,7 @@ export function NavLink({
     <NextLink href={href} prefetch={prefetch} passHref>
       {React.cloneElement(children as React.ReactElement, {
         className: combined,
+        ...(isActive ? { "aria-current": "page" } : {}),
         ...rest,
       })}
     </NextLink>

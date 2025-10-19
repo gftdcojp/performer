@@ -42,7 +42,7 @@ export function Breadcrumbs({
         {items.map((item, idx) => (
           <li key={item.href}>
             <NextLink href={item.href} prefetch>
-              <a>{item.label}</a>
+              <a {...(idx === items.length - 1 ? { "aria-current": "page" } : undefined)}>{item.label}</a>
             </NextLink>
             {idx < items.length - 1 ? <span aria-hidden>{separator}</span> : null}
           </li>
