@@ -20,6 +20,9 @@ importers:
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vite-tsconfig-paths:
+        specifier: ^5.1.4
+        version: 5.1.4(typescript@5.9.3)(vite@5.4.20(@types/node@20.19.22))
 
   packages/actions:
     dependencies:
@@ -92,6 +95,10 @@ importers:
       vitest:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@20.19.22)
+    optionalDependencies:
+      vite:
+        specifier: ^5.0.0
+        version: 5.4.20(@types/node@20.19.22)
 
   packages/contracts:
     dependencies:
@@ -263,6 +270,31 @@ importers:
       '@types/react':
         specifier: ^18.3.0
         version: 18.3.26
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.0(jiti@1.21.7)(postcss@8.5.6)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@20.19.22)
+
+  packages/rpc:
+    dependencies:
+      '@gftdcojp/performer-error-handling':
+        specifier: workspace:*
+        version: link:../error-handling
+      '@gftdcojp/performer-process':
+        specifier: workspace:*
+        version: link:../process
+    devDependencies:
+      '@biomejs/biome':
+        specifier: ^1.8.3
+        version: 1.9.4
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.22
       tsup:
         specifier: ^8.0.0
         version: 8.5.0(jiti@1.21.7)(postcss@8.5.6)(typescript@5.9.3)
@@ -1724,6 +1756,9 @@ packages:
     resolution: {integrity: sha512-7Bv8RF0k6xjo7d4A/PxYLbUCfb6c+Vpd2/mB2yRDlew7Jb5hEXiCD9ibfO7wpk8i4sevK6DFny9h7EYbM3/sHg==}
     hasBin: true
 
+  globrex@0.1.2:
+    resolution: {integrity: sha512-uHJgbwAMwNFf5mLst7IWLNg14x1CkeqglJb/K3doi4dw6q2IvAAmM/Y81kevy83wP+Sst+nutFTYOGg3d1lsxg==}
+
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
     engines: {node: '>= 0.4'}
@@ -2275,6 +2310,16 @@ packages:
   ts-interface-checker@0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
 
+  tsconfck@3.1.6:
+    resolution: {integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+    peerDependencies:
+      typescript: ^5.0.0
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -2362,6 +2407,14 @@ packages:
     resolution: {integrity: sha512-YAXkfvGtuTzwWbDSACdJSg4A4DZiAqckWe90Zapc/sEX3XvHcw1NdurM/6od8J207tSDqNbSsgdCacBgvJKFuA==}
     engines: {node: ^18.0.0 || >=20.0.0}
     hasBin: true
+
+  vite-tsconfig-paths@5.1.4:
+    resolution: {integrity: sha512-cYj0LRuLV2c2sMqhqhGpaO3LretdtMn/BVX4cPLanIZuwwrkVl+lK84E/miEXkCHWXuq65rhNN4rXsBcOB3S4w==}
+    peerDependencies:
+      vite: '*'
+    peerDependenciesMeta:
+      vite:
+        optional: true
 
   vite@5.4.20:
     resolution: {integrity: sha512-j3lYzGC3P+B5Yfy/pfKNgVEg4+UtcIJcVRt2cDjIOmhLourAqPqf8P7acgxeiSgUB7E3p2P8/3gNIgDLpwzs4g==}
@@ -3976,6 +4029,8 @@ snapshots:
       package-json-from-dist: 1.0.1
       path-scurry: 1.11.1
 
+  globrex@0.1.2: {}
+
   gopd@1.2.0: {}
 
   has-symbols@1.1.0: {}
@@ -4511,6 +4566,10 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
+  tsconfck@3.1.6(typescript@5.9.3):
+    optionalDependencies:
+      typescript: 5.9.3
+
   tslib@2.8.1: {}
 
   tsup@8.5.0(jiti@1.21.7)(postcss@8.5.6)(typescript@5.9.3):
@@ -4603,6 +4662,17 @@ snapshots:
       - sugarss
       - supports-color
       - terser
+
+  vite-tsconfig-paths@5.1.4(typescript@5.9.3)(vite@5.4.20(@types/node@20.19.22)):
+    dependencies:
+      debug: 4.4.3
+      globrex: 0.1.2
+      tsconfck: 3.1.6(typescript@5.9.3)
+    optionalDependencies:
+      vite: 5.4.20(@types/node@20.19.22)
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
 
   vite@5.4.20(@types/node@20.19.22):
     dependencies:

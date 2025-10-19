@@ -88,11 +88,17 @@
 
     cli: {
       id: "pkg_cli",
-      description: "Command-line interface tools",
+      description: "Next.js-style CLI with create, dev, build commands",
       dependencies: ["error-handling", "process"],
-      provides: ["process-management", "deployment-tools"],
-      status: "internal",
-      recentChanges: ["Marked private, added tsup config and src"]
+      provides: ["project-creation", "development-server", "build-tools", "code-generation"],
+      status: "implemented",
+      recentChanges: [
+        "Implemented complete Next.js-style CLI with create, dev, build, start, gen, db, info, telemetry commands",
+        "Added Vite + HMR development server integration",
+        "Added Turborepo build system integration",
+        "Added project template system with React + TypeScript support",
+        "Renamed to @gftdcojp/performer-cli and marked as public package"
+      ]
     },
 
     contracts: {
@@ -261,24 +267,26 @@
   processState: {
     activeNodes: [
       "pkg_actions",
+      "pkg_actor",
+      "pkg_cli",
       "pkg_data",
       "pkg_error_handling",
       "pkg_process",
+      "pkg_router",
       "app_demo"
     ],
 
     pendingNodes: [
-      "pkg_actor",
-      "pkg_cli",
       "pkg_contracts",
-      "pkg_observability",
-      "pkg_router"
+      "pkg_observability"
     ],
 
     criticalPaths: [
       "error-handling → actions → demo-app",
       "error-handling → data → process → demo-app",
-      "data → process → workflows"
+      "error-handling → process → cli → development-tools",
+      "data → process → workflows",
+      "cli → project-templates → demo-app"
     ],
 
     bottlenecks: [
@@ -295,7 +303,11 @@
       "CI: build/test and dry-run publish for all public packages",
       "Implement BPMN workflow execution",
       "Add comprehensive test coverage",
-      "Performance optimization"
+      "Performance optimization",
+      "✅ CLI development toolchain completed (create, dev, build, gen commands)",
+      "✅ Vite + HMR development server integrated",
+      "✅ Turborepo build system integration completed",
+      "✅ Project template system with React + TypeScript implemented"
     ],
 
     shortTerm: [

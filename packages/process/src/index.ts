@@ -11,9 +11,9 @@ import {
 	ErrorSeverity,
 } from "@pkg/error-handling";
 export * from "./types";
-export * from "./schemas";
+// export * from "./schemas"; // Temporarily disabled due to @effect/schema Record issue
 export * from "./util";
-export * from "./guard";
+// export * from "./guard"; // Temporarily disabled due to schemas dependency
 
 export interface ProcessDefinition {
 	id: string;

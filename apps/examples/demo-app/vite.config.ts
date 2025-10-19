@@ -5,11 +5,21 @@ import { defineConfig } from "vite";
 // https://vitejs.dev/config/
 export default defineConfig({
 	plugins: [react()],
+	optimizeDeps: {
+		exclude: [
+			"classnames",
+			"feelers",
+			"@bpmn-io/feel-editor",
+			"@codemirror/view",
+			"focus-trap",
+		],
+	},
 	resolve: {
 		alias: {
 			"@": resolve(__dirname, "./app"),
       "@pkg": resolve(__dirname, "../../../packages"),
       "@pkg/process": resolve(__dirname, "../../../packages/process/src"),
+      "@pkg/rpc": resolve(__dirname, "../../../packages/rpc/src"),
 		},
 	},
 	server: {
@@ -19,12 +29,59 @@ export default defineConfig({
 			overlay: false, // エラーオーバーレイを無効化
 		},
 	},
+	configureServer(server) {
+		console.log("Setting up oRPC middleware");
+		// Add oRPC middleware
+		server.middlewares.use("/orpc", async (req, res) => {
+			console.log("oRPC middleware called:", req.url);
+			try {
+				const url = new URL(req.url || "", "http://localhost");
+				if (url.pathname !== "/orpc") {
+					console.log("Not oRPC path:", url.pathname);
+					return;
+				}
+
+				const chunks: Uint8Array[] = [];
+				for await (const c of req) chunks.push(c as Uint8Array);
+				const body = Buffer.concat(chunks);
+
+				console.log("Received body:", body.toString());
+
+				// Dynamic import to avoid build issues
+				const { handleOrpc } = await import("@pkg/rpc");
+
+				const resp = await handleOrpc(
+					new Request("http://local/orpc", {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body,
+					}),
+				);
+
+				res.statusCode = resp.status;
+				resp.headers.forEach((v, k) => res.setHeader(k, v));
+				res.end(Buffer.from(await resp.arrayBuffer()));
+			} catch (error) {
+				console.error("oRPC error:", error);
+				res.statusCode = 500;
+				res.setHeader("content-type", "application/json");
+				res.end(JSON.stringify({ error: String(error) }));
+			}
+		});
+	},
 	build: {
 		outDir: "dist",
 		rollupOptions: {
 			input: {
 				main: resolve(__dirname, "index.html"),
 			},
+			external: [
+				"classnames",
+				"feelers",
+				"@bpmn-io/feel-editor",
+				"@codemirror/view",
+				"focus-trap",
+			],
 		},
 	},
 });

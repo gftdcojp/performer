@@ -13,6 +13,8 @@ Performer is a full-stack web framework that integrates Business Process Managem
 - **Neo4j Integration**: Flexible data management with graph database
 - **Type Safety**: End-to-end type safety with TypeScript + Zod
 - **Modular Design**: Independent components provided as npm packages
+- **Next.js-style CLI**: Complete development toolchain with create, dev, build commands
+- **Monorepo Support**: Turborepo integration for scalable development
 
 ## Architecture
 
@@ -35,6 +37,7 @@ Performer is a full-stack web framework that integrates Business Process Managem
 Performer provides the following npm packages:
 
 - `@gftdcojp/performer` - Integration package (bundles all features)
+- `@gftdcojp/performer-cli` - Next.js-style CLI with create, dev, build commands
 - `@gftdcojp/performer-actions` - Remix loader/action + Auth0 guards
 - `@gftdcojp/performer-actor` - Effect-based actor system
 - `@gftdcojp/performer-data` - Neo4j + Neogma adapter
@@ -63,6 +66,39 @@ npm install @gftdcojp/performer --registry=https://npm.pkg.github.com
 
 # Or use pnpm
 pnpm add @gftdcojp/performer --registry=https://npm.pkg.github.com
+```
+
+### CLI Installation
+
+Install the Performer CLI globally:
+
+```bash
+# Install CLI
+npm install -g @gftdcojp/performer-cli --registry=https://npm.pkg.github.com
+
+# Or use pnpm
+pnpm add -g @gftdcojp/performer-cli --registry=https://npm.pkg.github.com
+
+# Verify installation
+performer --version
+```
+
+### Create Your First App
+
+```bash
+# Create a new Performer project
+performer create my-app
+
+# Navigate to the project
+cd my-app
+
+# Install dependencies
+pnpm install
+
+# Start development server
+performer dev
+
+# Open http://localhost:3000 in your browser
 ```
 
 ### GitHub Packages Authentication
@@ -112,6 +148,71 @@ pnpm add @gftdcojp/performer
    ```
 
 ## Usage
+
+### CLI Commands
+
+Performer provides a complete development toolchain similar to Next.js:
+
+#### Create a New Project
+
+```bash
+# Create with default template
+performer create my-app
+
+# Create with specific options
+performer create my-app --template default --typescript --tailwind --neo4j --auth0
+
+# Show all options
+performer create --help
+```
+
+#### Development Server
+
+```bash
+# Start development server
+performer dev
+
+# Custom port and options
+performer dev --port 3001 --hostname 0.0.0.0 --open
+
+# Show all options
+performer dev --help
+```
+
+#### Build for Production
+
+```bash
+# Build project
+performer build
+
+# Custom output directory with analysis
+performer build --output dist --analyze --verbose
+
+# Show all options
+performer build --help
+```
+
+#### Other Commands
+
+```bash
+# Start production server
+performer start --port 3000
+
+# Export static site
+performer export --output out
+
+# Generate code (process, actor, model, component)
+performer gen process OrderProcess --name MyOrderProcess
+
+# Database operations
+performer db migrate
+
+# Show system information
+performer info
+
+# Manage telemetry
+performer telemetry enable
+```
 
 ### Basic Usage Example
 
@@ -331,6 +432,9 @@ import { EffectActorSystem } from '@gftdcojp/performer-actor';
 import { createNeo4jConnection } from '@gftdcojp/performer-data';
 import { ProcessBuilder } from '@gftdcojp/performer-process';
 import { FileRouter } from '@gftdcojp/performer-router';
+
+// CLI commands (when installed globally)
+import { runCLI } from '@gftdcojp/performer-cli';
 ```
 
 ### Package Design and Publishing Best Practices
@@ -440,6 +544,10 @@ pnpm build
 - Effect-based actor system
 - Auth0 authentication integration
 - TypeScript type-safe API
+- **Next.js-style CLI**: Complete development toolchain (create, dev, build, start, gen, db, info, telemetry)
+- **Vite + HMR**: Fast development server with hot module replacement
+- **Turborepo integration**: Optimized builds for monorepo environments
+- **Project templates**: Ready-to-use application templates with React + TypeScript
 
 ## License
 

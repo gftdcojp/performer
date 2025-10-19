@@ -4,7 +4,7 @@
 	"description": "Demo app: order->approval->payment BPMN process",
 	"private": true,
 	"scripts": {
-		"dev": "vite --port 8100",
+		"dev": "vite --port 3001",
 		"build": "node scripts/check-structure.js && vite build",
 		"preview": "vite preview",
 		"performer:dev": "performer dev --app=demo-app",
@@ -24,20 +24,14 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@biomejs/biome": "^1.8.3",
-		"@bpmn-io/feel-editor": "^1.12.0",
-		"@codemirror/view": "^6.38.6",
 		"@playwright/test": "^1.45.0",
 		"@types/node": "^20.14.0",
 		"@types/react": "^18.3.0",
 		"@types/react-dom": "^18.3.0",
 		"@vitejs/plugin-react": "^4.7.0",
-		"classnames": "^2.5.1",
-		"feelers": "^1.4.0",
-		"focus-trap": "^7.6.5",
 		"typescript": "^5.5.0",
 		"vite": "^5.4.20",
-		"vitest": "^1.6.0",
-		"classnames": "^2.5.1"
+		"vitest": "^1.6.0"
 	},
 	"dependencies": {
 		"@bpmn-io/form-js": "^1.17.0",

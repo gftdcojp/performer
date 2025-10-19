@@ -4,6 +4,9 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { createProject, type TemplateOptions } from "./templates/index.js";
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { spawn } from 'child_process';
 
 export interface CLIOptions {
   verbose?: boolean;
@@ -155,13 +158,81 @@ export class PerformerCLI {
     }
 
     try {
-      // TODO: Implement dev server logic
-      console.log(chalk.green(`✅ Development server running at http://${hostname}:${port}`));
+      // Check if we're in a project directory
+      const cwd = process.cwd();
+      const packageJsonPath = path.join(cwd, 'package.json');
+      const viteConfigPath = path.join(cwd, 'vite.config.ts');
+
+      // Check if package.json exists
+      try {
+        await fs.access(packageJsonPath);
+      } catch {
+        throw new Error('No package.json found. Are you in a Performer project directory?');
+      }
+
+      // Check if Vite config exists
+      try {
+        await fs.access(viteConfigPath);
+      } catch {
+        throw new Error('No vite.config.ts found. Please ensure you have a valid Vite configuration.');
+      }
+
+      console.log(chalk.gray('Starting Vite development server...'));
+
+      // Dynamically import Vite from project node_modules, fallback to CLI's optional dep
+      let { createServer } = await (async () => {
+        try {
+          // Try project node_modules first
+          const vitePath = path.join(cwd, 'node_modules', 'vite');
+          return await import(vitePath);
+        } catch {
+          try {
+            // Fallback to CLI's optional dependencies
+            return await import('vite');
+          } catch {
+            throw new Error('Vite is not available. Please run: pnpm add -D vite');
+          }
+        }
+      })();
+
+      const server = await createServer({
+        configFile: viteConfigPath,
+        server: {
+          host: hostname,
+          port: parseInt(port),
+          open: open,
+          hmr: true
+        },
+        mode: 'development'
+      });
+
+      await server.listen();
+
+      const info = server.config.server;
+      console.log(chalk.green(`✅ Development server running at http://${info.host || 'localhost'}:${info.port}`));
+
       if (open) {
         console.log(chalk.gray(`Opening browser...`));
+        // Note: Vite handles opening the browser automatically when open: true
       }
+
+      console.log(chalk.gray('Press Ctrl+C to stop the server'));
+
+      // Keep the process running
+      process.on('SIGINT', async () => {
+        console.log(chalk.yellow('\nStopping development server...'));
+        await server.close();
+        process.exit(0);
+      });
+
+      process.on('SIGTERM', async () => {
+        console.log(chalk.yellow('\nStopping development server...'));
+        await server.close();
+        process.exit(0);
+      });
+
     } catch (error) {
-      console.error(chalk.red(`❌ Failed to start dev server: ${error}`));
+      console.error(chalk.red(`❌ Failed to start dev server: ${(error as Error).message}`));
       process.exit(1);
     }
   }
@@ -177,13 +248,144 @@ export class PerformerCLI {
     }
 
     try {
-      // TODO: Implement build logic
-      console.log(chalk.green(`✅ Build completed successfully!`));
-      console.log(chalk.gray(`Output directory: ${output}`));
+      const cwd = process.cwd();
+
+      // Check if this is a monorepo with Turborepo
+      const turboJsonPath = path.join(cwd, 'turbo.json');
+      const pnpmWorkspacePath = path.join(cwd, 'pnpm-workspace.yaml');
+
+      let isTurborepo = false;
+      try {
+        await fs.access(turboJsonPath);
+        isTurborepo = true;
+        console.log(chalk.gray('Detected Turborepo configuration'));
+      } catch {
+        // Not a Turborepo project, check if it's a pnpm workspace
+        try {
+          await fs.access(pnpmWorkspacePath);
+          console.log(chalk.gray('Detected pnpm workspace'));
+        } catch {
+          console.log(chalk.gray('Building as single package'));
+        }
+      }
+
+      if (isTurborepo) {
+        // Use Turborepo for building
+        await this.runTurborepoBuild(cwd, options);
+      } else {
+        // Use Vite for single project build
+        await this.runViteBuild(cwd, options);
+      }
+
     } catch (error) {
-      console.error(chalk.red(`❌ Build failed: ${error}`));
+      console.error(chalk.red(`❌ Build failed: ${(error as Error).message}`));
       process.exit(1);
     }
+  }
+
+  private async runTurborepoBuild(cwd: string, options: any): Promise<void> {
+    const { output, analyze, profile, verbose } = options;
+
+    console.log(chalk.gray('Building with Turborepo...'));
+
+    return new Promise((resolve, reject) => {
+      const turboArgs = ['build'];
+
+      if (verbose) {
+        turboArgs.push('--verbose');
+      }
+
+      if (profile) {
+        turboArgs.push('--profile', output);
+      }
+
+      const turbo = spawn('pnpm', ['turbo', ...turboArgs], {
+        cwd,
+        stdio: 'inherit',
+        shell: true
+      });
+
+      turbo.on('close', (code) => {
+        if (code === 0) {
+          console.log(chalk.green(`✅ Turborepo build completed successfully!`));
+          resolve();
+        } else {
+          reject(new Error(`Turborepo build failed with exit code ${code}`));
+        }
+      });
+
+      turbo.on('error', (error) => {
+        reject(new Error(`Failed to start Turborepo: ${error.message}`));
+      });
+    });
+  }
+
+  private async runViteBuild(cwd: string, options: any): Promise<void> {
+    const { output, analyze, profile, verbose } = options;
+
+    console.log(chalk.gray('Building with Vite...'));
+
+    // Check if Vite config exists
+    const viteConfigPath = path.join(cwd, 'vite.config.ts');
+    try {
+      await fs.access(viteConfigPath);
+    } catch {
+      throw new Error('No vite.config.ts found. Please ensure you have a valid Vite configuration.');
+    }
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Dynamically import Vite from project node_modules, fallback to CLI's optional dep
+        const { build } = await (async () => {
+          try {
+            // Try project node_modules first
+            const vitePath = path.join(cwd, 'node_modules', 'vite');
+            return await import(vitePath);
+          } catch {
+            try {
+              // Fallback to CLI's optional dependencies
+              return await import('vite');
+            } catch {
+              throw new Error('Vite is not available. Please run: pnpm add -D vite');
+            }
+          }
+        })();
+
+        const buildConfig: any = {
+          configFile: viteConfigPath,
+          build: {
+            outDir: output,
+            sourcemap: verbose,
+            minify: !verbose,
+          },
+          mode: 'production'
+        };
+
+        if (analyze) {
+          // Enable bundle analyzer if requested
+          buildConfig.build.rollupOptions = {
+            output: {
+              manualChunks: {
+                vendor: ['react', 'react-dom'],
+              }
+            }
+          };
+        }
+
+        await build(buildConfig);
+
+        console.log(chalk.green(`✅ Vite build completed successfully!`));
+        console.log(chalk.gray(`Output directory: ${output}`));
+
+        if (analyze) {
+          console.log(chalk.gray('Bundle analysis completed'));
+        }
+
+        resolve();
+      } catch (error) {
+        reject(new Error(`Vite build failed: ${(error as Error).message}`));
+      }
+    });
   }
 
   private async handleStart(options: any): Promise<void> {

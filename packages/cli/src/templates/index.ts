@@ -110,8 +110,13 @@ export class TemplateManager {
 
     // src directory structure
     files.push({
-      path: 'src/index.ts',
+      path: 'src/index.tsx',
       content: this.generateMainIndex()
+    });
+
+    files.push({
+      path: 'src/App.tsx',
+      content: this.generateAppComponent()
     });
 
     files.push({
@@ -159,11 +164,16 @@ export class TemplateManager {
     const { name, typescript, tailwind, neo4j, auth0 } = this.options;
 
     const dependencies: Record<string, string> = {
-      '@gftdcojp/performer': '^1.0.0'
+      '@gftdcojp/performer': '^1.0.0',
+      'react': '^18.0.0',
+      'react-dom': '^18.0.0'
     };
 
     const devDependencies: Record<string, string> = {
       '@biomejs/biome': '^1.8.0',
+      '@types/react': '^18.0.0',
+      '@types/react-dom': '^18.0.0',
+      '@vitejs/plugin-react': '^4.0.0',
       'vite': '^5.0.0',
       'typescript': typescript ? '^5.0.0' : undefined,
       'tailwindcss': tailwind ? '^3.0.0' : undefined,
@@ -211,8 +221,7 @@ export class TemplateManager {
         noUnusedParameters: true,
         noFallthroughCasesInSwitch: true
       },
-      include: ['src'],
-      references: [{ path: './tsconfig.node.json' }]
+      include: ['src']
     }, null, 2);
   }
 
@@ -271,17 +280,47 @@ pnpm build
   }
 
   private generateMainIndex(): string {
-    const { name } = this.options;
-    return `// Main application entry point
-import { createApp } from '@gftdcojp/performer';
+    return `import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
 import './index.css';
 
-const app = createApp({
-  name: '${name}',
-  version: '0.1.0'
-});
+const root = ReactDOM.createRoot(document.getElementById('root')!);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
+`;
+  }
 
-app.start().catch(console.error);
+  private generateAppComponent(): string {
+    const { name } = this.options;
+    return `import React from 'react';
+
+function App() {
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+        <div className="p-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            ${name}
+          </h1>
+          <p className="text-gray-600">
+            Welcome to your Performer application!
+          </p>
+          <div className="mt-4">
+            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+              Get Started
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
 `;
   }
 
@@ -380,7 +419,7 @@ export default defineConfig({
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>
 `;

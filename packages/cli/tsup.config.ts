@@ -4,20 +4,22 @@ export default defineConfig([
 	{
 		entry: ["src/index.ts"],
 		format: ["cjs", "esm"],
-		dts: true,
+		dts: false,
 		splitting: false,
 		sourcemap: true,
 		clean: true,
 		minify: false,
+		external: ["vite"],
 	},
 	{
 		entry: ["src/cli.ts"],
 		format: ["cjs"],
-		dts: true,
+		dts: false,
 		splitting: false,
 		sourcemap: true,
 		clean: false,
 		minify: false,
+		external: ["vite"],
 		banner: {
 			js: "#!/usr/bin/env node"
 		}
