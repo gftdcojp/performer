@@ -19,7 +19,7 @@ export interface ProcessInstance {
   processId: string;
   businessKey: string;
   status: "running" | "completed" | "suspended" | "terminated";
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
   startTime: Date;
   endTime?: Date;
 }
@@ -32,7 +32,7 @@ export function createUser(id: string, email: string, roles: string[] = []): Use
 export function createProcessInstance(
   processId: string,
   businessKey: string,
-  variables: Record<string, any> = {}
+  variables: Record<string, unknown> = {}
 ): Omit<ProcessInstance, "id" | "startTime" | "status"> {
   return {
     processId,
@@ -60,4 +60,4 @@ export const actor = {};
 export const data = {};
 export const errorHandling = {};
 export const process = {};
-export const router = {};
+export { FileRouter, SSRPipeline, type RouterConfig, type RouteMatch } from "./router/index";
