@@ -60,7 +60,7 @@
       database: "Neo4j + Neogma ORM",
       process: "BPMN.js + Custom DSL",
       auth: "Auth0 v3",
-      build: "Turborepo + tsup + pnpm",
+      build: "Turborepo + tsup + pnpm (GitHub Packages)",
       quality: "Biome + Vitest + Playwright"
     }
   },
@@ -74,7 +74,7 @@
       dependencies: ["error-handling"],
       provides: ["authentication", "authorization", "action-validation"],
       status: "implemented",
-      recentChanges: ["Integrated error-handling for auth failures"]
+      recentChanges: ["Integrated error-handling for auth failures", "Renamed to @gftdcojp/performer-actions and added publishConfig.registry"]
     },
 
     actor: {
@@ -82,8 +82,8 @@
       description: "Actor pattern implementation for concurrent processing",
       dependencies: ["error-handling"],
       provides: ["concurrency", "message-passing"],
-      status: "stub",
-      recentChanges: []
+      status: "implemented",
+      recentChanges: ["Renamed to @gftdcojp/performer-actor and added publishConfig.registry"]
     },
 
     cli: {
@@ -91,8 +91,8 @@
       description: "Command-line interface tools",
       dependencies: ["error-handling", "process"],
       provides: ["process-management", "deployment-tools"],
-      status: "stub",
-      recentChanges: []
+      status: "internal",
+      recentChanges: ["Marked private, added tsup config and src"]
     },
 
     contracts: {
@@ -100,8 +100,8 @@
       description: "API contracts and type definitions",
       dependencies: ["error-handling"],
       provides: ["api-schema", "type-safety"],
-      status: "stub",
-      recentChanges: []
+      status: "internal",
+      recentChanges: ["Marked private, DTS build disabled due to @ts-rest/core types"]
     },
 
     data: {
@@ -110,7 +110,7 @@
       dependencies: ["error-handling"],
       provides: ["data-persistence", "query-abstraction", "transactions"],
       status: "implemented",
-      recentChanges: ["Added config property to Neo4jConnection class"]
+      recentChanges: ["Added config property to Neo4jConnection class", "Renamed to @gftdcojp/performer-data and added publishConfig.registry"]
     },
 
     'error-handling': {
@@ -119,7 +119,7 @@
       dependencies: [],
       provides: ["structured-errors", "error-recovery", "logging"],
       status: "implemented",
-      recentChanges: ["Complete error handling system with reporters and recovery"]
+      recentChanges: ["Complete error handling system with reporters and recovery", "Marked private, strict typing adjustments for d.ts"]
     },
 
     observability: {
@@ -127,8 +127,8 @@
       description: "Monitoring, logging, and metrics collection",
       dependencies: ["error-handling"],
       provides: ["metrics", "tracing", "health-checks"],
-      status: "stub",
-      recentChanges: []
+      status: "internal",
+      recentChanges: ["Marked private, added src and tsup config"]
     },
 
     process: {
@@ -137,7 +137,7 @@
       dependencies: ["error-handling", "data"],
       provides: ["process-execution", "bpmn-validation", "workflow-management"],
       status: "implemented",
-      recentChanges: ["Integrated error handling for BPMN validation"]
+      recentChanges: ["Integrated error handling for BPMN validation", "Renamed to @gftdcojp/performer-process and added publishConfig.registry"]
     },
 
     router: {
@@ -145,8 +145,8 @@
       description: "Client-side routing utilities",
       dependencies: ["error-handling"],
       provides: ["navigation", "route-guards"],
-      status: "stub",
-      recentChanges: []
+      status: "implemented",
+      recentChanges: ["Renamed to @gftdcojp/performer-router and added publishConfig.registry"]
     }
   },
 
@@ -291,7 +291,8 @@
   // Roadmap and Next Steps
   roadmap: {
     immediate: [
-      "Complete remaining package stubs",
+      "Adopt Changesets for versioning",
+      "CI: build/test and dry-run publish for all public packages",
       "Implement BPMN workflow execution",
       "Add comprehensive test coverage",
       "Performance optimization"
@@ -299,6 +300,7 @@
 
     shortTerm: [
       "Multi-tenant architecture",
+      "CI: automated publish to GitHub Packages on tagged releases",
       "Real-time process monitoring",
       "Advanced error recovery",
       "API documentation"

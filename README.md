@@ -65,6 +65,22 @@ npm install @gftdcojp/performer --registry=https://npm.pkg.github.com
 pnpm add @gftdcojp/performer --registry=https://npm.pkg.github.com
 ```
 
+### GitHub Packages Authentication
+
+GitHub Packages を利用する場合は、Personal Access Token(PAT) を設定してください。
+
+```bash
+# 1) GitHub PAT を作成 (packages:read 権限)
+# 2) npm へ設定
+npm config set //npm.pkg.github.com/:_authToken YOUR_TOKEN
+
+# 3) .npmrc (プロジェクト直下) でスコープのレジストリを指定 (任意)
+echo "@gftdcojp:registry=https://npm.pkg.github.com" >> .npmrc
+
+# 4) インストール
+pnpm add @gftdcojp/performer
+```
+
 ### Configuration
 
 1. **Neo4j Setup**
@@ -317,6 +333,29 @@ import { ProcessBuilder } from '@gftdcojp/performer-process';
 import { FileRouter } from '@gftdcojp/performer-router';
 ```
 
+### Package Design and Publishing Best Practices
+
+- Naming: `@gftdcojp/performer-*` に統一。統合用 `@gftdcojp/performer` は再エクスポートを提供。
+- Exports: `exports` フィールドで `types`/`import`/`require` を明示し、深い import を防止。
+- Peer Dependencies: React/Vite/Next 等のホスト依存は `peerDependencies` として宣言。
+- Build: tsup で ESM/CJS/d.ts を生成、`sideEffects: false` でツリーシェイク前提。
+- Files: `files` で公開物を `dist` 等に限定。
+- Registry: 公開先が GitHub Packages の場合、各 `package.json` に `publishConfig.registry` を設定。
+
+#### Release Flow (recommended)
+
+1. Changesets で変更を記述（SemVer準拠）
+2. PR マージで CI が version bump + tag
+3. CI が `pnpm -r build` → `pnpm -r publish`（dry-run → 本番）
+4. `latest` と `next` タグを使い分けて安定性を担保
+
+#### Dry-run publish check
+
+```bash
+# 作業ツリーがクリーンでない場合は --no-git-checks
+pnpm publish --dry-run --filter @gftdcojp/performer-actions --no-git-checks
+```
+
 ## Project Templates
 
 Templates to quickly start new Performer projects:
@@ -337,6 +376,12 @@ npm run dev
 ```bash
 # Set PAT
 npm config set //npm.pkg.github.com/:_authToken YOUR_TOKEN
+```
+または `.npmrc` に以下を追加:
+
+```ini
+@gftdcojp:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
 ```
 
 **Neo4j Connection Error**
