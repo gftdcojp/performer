@@ -43,7 +43,7 @@
 		"@bpmn-io/form-js": "^1.17.0",
 		"@bpmn-io/form-js-editor": "^1.17.0",
 		"@bpmn-io/form-js-viewer": "^1.17.0",
-		"@gftdcojp/performer": "^1.0.0",
+		"@gftdcojp/performer": "file:../..",
 		"autoprefixer": "^10.4.0",
 		"postcss": "^8.4.0",
 		"react": "^18.3.0",

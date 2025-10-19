@@ -28,11 +28,11 @@ services:
 
   # Neo4j Database
   neo4j:
-    image: neo4j:5.0
+    image: neo4j:latest
     container_name: performer-neo4j
     ports:
-      - "7474:7474"  # HTTP
-      - "7687:7687"  # Bolt
+      - "7475:7474"  # HTTP (changed from 7474 to avoid conflict)
+      - "7688:7687"  # Bolt (changed from 7687 to avoid conflict)
     environment:
       - NEO4J_AUTH=neo4j/password
       - NEO4J_PLUGINS=["graph-data-science"]
