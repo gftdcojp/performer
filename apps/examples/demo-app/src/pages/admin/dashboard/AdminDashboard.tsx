@@ -4,7 +4,22 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { TASKS, type DashboardStats } from "@pkg/process";
+
+// Local type definitions for dashboard
+interface DashboardStats {
+	totalProcesses: number;
+	activeProcesses: number;
+	completedProcesses: number;
+	failedProcesses: number;
+	averageCompletionTime: number;
+}
+
+// Mock task data (in real app, this would come from API)
+const TASKS = {
+	order: ["ValidateOrder", "InventoryCheck", "ManagerApproval", "PaymentProcessing"],
+	returns: ["ValidateReturn", "RefundProcessing", "ShippingArrangement"],
+	support: ["InitialAssessment", "Investigation", "Resolution"],
+};
 
 // Process metadata for all integrated processes (client-side copy)
 const allProcessMetadata = {
@@ -169,7 +184,7 @@ const allProcessMetadata = {
 	},
 };
 
-// DashboardStats is imported from @pkg/process
+// DashboardStats is defined locally for demo purposes
 
 interface ProcessInstance {
 	id: string;

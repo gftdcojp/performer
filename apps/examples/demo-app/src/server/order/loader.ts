@@ -3,7 +3,7 @@
 // Merkle DAG: order_loader -> neo4j_query -> type_validation
 // Server-side loader for order data with Neo4j integration
 
-import { createActions } from "@pkg/actions";
+import { createActions } from "@gftdcojp/performer";
 
 // Type definitions
 interface LoaderParams {
