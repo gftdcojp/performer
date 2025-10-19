@@ -2,14 +2,31 @@
 // BPMN SDK wrapper for DSL->IR->engine, start/signal/message, human task/SLA
 
 /// <reference lib="dom" />
-import BpmnModeler from "bpmn-js/lib/Modeler";
-import BpmnViewer from "bpmn-js/lib/Viewer";
 import {
 	processErrorFactory,
 	withErrorHandling,
 	ErrorCodes,
 	ErrorSeverity,
 } from "@pkg/error-handling";
+
+// Dynamic import for browser-only modules
+let BpmnModeler: any = null;
+let BpmnViewer: any = null;
+
+if (typeof window !== "undefined") {
+	// Browser environment - dynamically import BPMN modules
+	import("bpmn-js/lib/Modeler").then((module) => {
+		BpmnModeler = module.default;
+	}).catch(() => {
+		// Silently fail in non-browser environments
+	});
+
+	import("bpmn-js/lib/Viewer").then((module) => {
+		BpmnViewer = module.default;
+	}).catch(() => {
+		// Silently fail in non-browser environments
+	});
+}
 export * from "./types";
 // export * from "./schemas"; // Temporarily disabled due to @effect/schema Record issue
 export * from "./util";
@@ -146,13 +163,13 @@ export class ProcessBuilder {
 
 // Process Engine
 export class ProcessEngine {
-	private modeler: BpmnModeler | null = null;
+	private modeler: any = null;
 	private instances: Map<string, ProcessInstance> = new Map();
 	private tasks: Map<string, Task[]> = new Map();
 
 	constructor() {
 		// Initialize BPMN modeler only in browser environment
-		if (typeof window !== "undefined") {
+		if (typeof window !== "undefined" && BpmnModeler) {
 			this.modeler = new BpmnModeler();
 		}
 	}

@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { handleOrpc } from "@gftdcojp/performer-rpc";
 
 // https://vitejs.dev/config/
 function orpcPlugin() {
@@ -22,9 +23,6 @@ function orpcPlugin() {
 					const body = Buffer.concat(chunks);
 
 					console.log("Received body:", body.toString());
-
-					// Dynamic import to avoid build issues
-					const { handleOrpc } = await import("@pkg/rpc");
 
 					const resp = await handleOrpc(
 						new Request("http://local/orpc", {
@@ -57,6 +55,7 @@ export default defineConfig({
 			"@bpmn-io/feel-editor",
 			"@codemirror/view",
 			"focus-trap",
+			"bpmn-js",
 		],
 	},
 	resolve: {

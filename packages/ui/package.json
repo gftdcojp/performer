@@ -1,0 +1,61 @@
+{
+	"name": "@gftdcojp/performer-ui",
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"version": "1.0.0",
+	"description": "UI components library for Performer platform",
+	"main": "dist/index.js",
+	"module": "dist/index.mjs",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.mjs",
+			"require": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"lint": "biome check .",
+		"format": "biome format --write .",
+		"test": "vitest run",
+		"clean": "rm -rf dist"
+	},
+	"keywords": [
+		"ui",
+		"components",
+		"react",
+		"nextjs"
+	],
+	"license": "MIT",
+	"devDependencies": {
+		"@biomejs/biome": "^1.8.3",
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/react": "^16.3.0",
+		"@types/node": "^20.14.0",
+		"@types/react": "^18.3.0",
+		"@types/react-dom": "^18.3.0",
+		"jsdom": "^27.0.1",
+		"tsup": "^8.0.0",
+		"typescript": "^5.5.0",
+		"vitest": "^1.6.0"
+	},
+	"dependencies": {
+		"next": "^14.0.0",
+		"react": "^18.0.0",
+		"react-dom": "^18.0.0",
+		"zod": "^3.22.4"
+	},
+	"peerDependencies": {
+		"next": "^14.0.0",
+		"react": "^18.0.0",
+		"react-dom": "^18.0.0"
+	}
+}

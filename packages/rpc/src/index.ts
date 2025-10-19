@@ -4,7 +4,7 @@
 import { createRouter } from "./router";
 import { createHttpHandler } from "./http";
 import { createContext, type Context } from "./context";
-import { processEngine, type ProcessInstance, type Task } from "@pkg/process";
+import { processEngine, type ProcessInstance, type Task } from "@gftdcojp/performer-process";
 
 // Procedure definitions for process engine
 export const router = createRouter<Context>()

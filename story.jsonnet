@@ -155,6 +155,15 @@
       provides: ["navigation", "route-guards"],
       status: "implemented",
       recentChanges: ["Renamed to @gftdcojp/performer-router and added publishConfig.registry"]
+    },
+
+    ui: {
+      id: "pkg_ui",
+      description: "UI components library with Next.js Link wrapper",
+      dependencies: ["error-handling"],
+      provides: ["ui-components", "navigation-components", "link-component"],
+      status: "implemented",
+      recentChanges: ["Created new UI components package with Next.js Link wrapper", "Added Link component with active state detection", "Implemented type-safe props validation with Zod"]
     }
   },
 
@@ -275,6 +284,7 @@
       "pkg_error_handling",
       "pkg_process",
       "pkg_router",
+      "pkg_ui",
       "app_demo"
     ],
 
