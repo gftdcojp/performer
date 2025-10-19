@@ -2,15 +2,28 @@
 
 BPMN + Actor + Neo4j Web Framework (Next.js Type Conventions × Remix Boundaries × Effect Execution)
 
+[![npm version](https://img.shields.io/badge/npm-v1.0.0-blue.svg)](https://npm.pkg.github.com/@gftdcojp/performer)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-blue.svg)](https://www.typescriptlang.org/)
+
 ## Overview
 
 Performer is a full-stack web framework that integrates Business Process Management (BPMN), actor systems, and Neo4j database. It provides a unique architecture combining Next.js file-based routing, Remix's loader/action patterns, and Effect's functional programming.
+
+**🚀 Key Highlights:**
+- **Complete CLI Toolchain**: Next.js-style `create`, `dev`, `build` commands
+- **Modern Development**: Vite + HMR, TypeScript, Tailwind CSS
+- **Enterprise Ready**: BPMN process automation with graph database persistence
+- **UI Components Library**: Next.js Link wrapper with active state detection
+- **Modular Architecture**: Independent npm packages for flexible composition
+- **Developer Experience**: Comprehensive tooling with hot reloading and optimized builds
 
 ## Key Features
 
 - **BPMN Control Flow**: Visually define and execute business processes
 - **Actor System**: Distributed execution of service tasks with fault tolerance
 - **Neo4j Integration**: Flexible data management with graph database
+- **UI Components Library**: Next.js Link wrapper with active state detection and type validation
 - **Type Safety**: End-to-end type safety with TypeScript + Zod
 - **Modular Design**: Independent components provided as npm packages
 - **Next.js-style CLI**: Complete development toolchain with create, dev, build commands
@@ -22,15 +35,18 @@ Performer is a full-stack web framework that integrates Business Process Managem
 
 | Layer | Technology | Description |
 |-------|------------|-------------|
-| Routing | File-based Router | Next.js style `app/**/page.client.tsx` |
-| Boundary Management | Remix Actions | Server/client boundary with loader/action patterns |
-| Execution Foundation | Effect | Functional programming and error handling |
-| Process Engine | BPMN SDK | Control flow definition and execution |
-| Actor | Effect Actor | Distributed service task execution |
-| Data | Neo4j + Neogma | Type-safe Cypher queries |
-| UI | React + Tailwind | Modern user interface |
-| Authentication | Auth0 | RBAC/ABAC access control |
-| Monitoring | OpenTelemetry + Sentry | Distributed tracing and error monitoring |
+| **CLI & Tooling** | Custom CLI + Turborepo | Next.js-style commands, monorepo orchestration |
+| **Development** | Vite + TypeScript | Hot reloading, type safety, modern tooling |
+| **Routing** | File-based Router | Next.js style `app/**/page.client.tsx` |
+| **Boundary Management** | Remix Actions | Server/client boundary with loader/action patterns |
+| **Execution Foundation** | Effect | Functional programming and error handling |
+| **Process Engine** | BPMN SDK | Control flow definition and execution |
+| **Actor** | Effect Actor | Distributed service task execution |
+| **Data** | Neo4j + Neogma | Type-safe Cypher queries |
+| **UI Components** | React + Next.js Link | Enhanced navigation with active state detection |
+| **UI** | React + Tailwind | Modern user interface |
+| **Authentication** | Auth0 | RBAC/ABAC access control |
+| **Monitoring** | OpenTelemetry + Sentry | Distributed tracing and error monitoring |
 
 ### Package Structure
 
@@ -38,42 +54,32 @@ Performer provides the following npm packages:
 
 - `@gftdcojp/performer` - Integration package (bundles all features)
 - `@gftdcojp/performer-cli` - Next.js-style CLI with create, dev, build commands
+- `@gftdcojp/performer-ui` - UI components library with Next.js Link wrapper
 - `@gftdcojp/performer-actions` - Remix loader/action + Auth0 guards
 - `@gftdcojp/performer-actor` - Effect-based actor system
 - `@gftdcojp/performer-data` - Neo4j + Neogma adapter
 - `@gftdcojp/performer-process` - BPMN SDK wrapper
 - `@gftdcojp/performer-router` - Next.js style file-based router
 
+### CLI Capabilities
+
+The Performer CLI provides a complete development experience:
+
+- **Project Creation**: `performer create <name>` - Generate React + TypeScript apps
+- **Development Server**: `performer dev` - Vite + HMR development server
+- **Production Build**: `performer build` - Turborepo-optimized builds
+- **Code Generation**: `performer gen` - Generate BPMN processes, actors, models
+- **Database Tools**: `performer db` - Database operations and migrations
+- **System Info**: `performer info` - Environment and system diagnostics
+
 ## Quick Start
 
-### Prerequisites
+### ⚡ 1-Minute Setup
 
-- Node.js 18+
-- npm or pnpm
-- Neo4j 5.0+
-- Auth0 account
-
-### Installation
+#### 1. Install CLI Globally
 
 ```bash
-# Create a new project
-mkdir my-performer-app
-cd my-performer-app
-npm init -y
-
-# Install Performer packages
-npm install @gftdcojp/performer --registry=https://npm.pkg.github.com
-
-# Or use pnpm
-pnpm add @gftdcojp/performer --registry=https://npm.pkg.github.com
-```
-
-### CLI Installation
-
-Install the Performer CLI globally for the complete development experience:
-
-```bash
-# Install CLI
+# Install Performer CLI globally
 npm install -g @gftdcojp/performer-cli --registry=https://npm.pkg.github.com
 
 # Or use pnpm
@@ -83,7 +89,7 @@ pnpm add -g @gftdcojp/performer-cli --registry=https://npm.pkg.github.com
 performer --version
 ```
 
-### Create Your First App
+#### 2. Create Your First App
 
 ```bash
 # Create a new Performer project
@@ -101,20 +107,44 @@ performer dev
 # Open http://localhost:3000 in your browser
 ```
 
-### GitHub Packages Authentication
-
-GitHub Packages を利用する場合は、Personal Access Token(PAT) を設定してください。
+#### 3. Build for Production
 
 ```bash
-# 1) GitHub PAT を作成 (packages:read 権限)
-# 2) npm へ設定
-npm config set //npm.pkg.github.com/:_authToken YOUR_TOKEN
+# Build your app
+performer build
 
-# 3) .npmrc (プロジェクト直下) でスコープのレジストリを指定 (任意)
-echo "@gftdcojp:registry=https://npm.pkg.github.com" >> .npmrc
+# Preview production build
+performer start
+```
 
-# 4) インストール
-pnpm add @gftdcojp/performer
+### 🔐 GitHub Packages Authentication
+
+Performer packages are hosted on GitHub Packages. You'll need a Personal Access Token (PAT) with `packages:read` permission.
+
+#### Global Setup (Recommended)
+
+```bash
+# Set your GitHub PAT globally
+npm config set //npm.pkg.github.com/:_authToken YOUR_GITHUB_PAT
+
+# Or for pnpm
+pnpm config set //npm.pkg.github.com/:_authToken YOUR_GITHUB_PAT
+```
+
+#### Project Setup (Alternative)
+
+```bash
+# Create .npmrc in your project root
+echo "@gftdcojp:registry=https://npm.pkg.github.com" > .npmrc
+echo "//npm.pkg.github.com/:_authToken=YOUR_GITHUB_PAT" >> .npmrc
+```
+
+#### Environment Variables (CI/CD)
+
+```bash
+# Set environment variable
+export NPM_TOKEN=YOUR_GITHUB_PAT
+echo "//npm.pkg.github.com/:_authToken=\${NPM_TOKEN}" > .npmrc
 ```
 
 ### Configuration
@@ -149,79 +179,129 @@ pnpm add @gftdcojp/performer
 
 ## Usage
 
-### CLI Commands
+## 📚 CLI Commands
 
-Performer provides a complete development toolchain similar to Next.js:
+Performer CLI provides a comprehensive development experience with Next.js-style commands.
 
-#### Create a New Project
+### 🚀 Project Creation
 
 ```bash
-# Create with default template
+# Quick start with default template
 performer create my-app
 
-# Create with specific options
-performer create my-app --template default --typescript --tailwind --neo4j --auth0
+# Full-featured setup
+performer create my-bpmn-app --typescript --tailwind --neo4j --auth0
 
-# Show all options
+# Custom template (future feature)
+performer create my-app --template enterprise
+
+# Get help
 performer create --help
 ```
 
-#### Development Server
+### 🏃 Development Server
 
 ```bash
-# Start development server
+# Start with default settings
 performer dev
 
-# Custom port and options
+# Custom configuration
 performer dev --port 3001 --hostname 0.0.0.0 --open
 
-# Show all options
+# Turbo mode (future feature)
+performer dev --turbo
+
+# Help
 performer dev --help
 ```
 
-#### Build for Production
+### 🔨 Production Build
 
 ```bash
-# Build project
+# Standard build
 performer build
 
-# Custom output directory with analysis
-performer build --output dist --analyze --verbose
+# Advanced build with analysis
+performer build --output dist --analyze --profile build-profile
 
-# Show all options
+# Verbose logging
+performer build --verbose
+
+# Help
 performer build --help
 ```
 
-#### Other Commands
+### 🎯 Advanced Commands
 
 ```bash
 # Start production server
-performer start --port 3000
+performer start --port 8080 --hostname 0.0.0.0
 
-# Export static site
+# Export static site (future feature)
 performer export --output out
 
-# Generate code (process, actor, model, component)
-performer gen process OrderProcess --name MyOrderProcess
+# Code generation
+performer gen process OrderProcess
+performer gen actor OrderActor
+performer gen model User
 
 # Database operations
 performer db migrate
+performer db seed
+performer db reset
 
-# Show system information
+# System diagnostics
 performer info
 
-# Manage telemetry
+# Telemetry settings
+performer telemetry status
 performer telemetry enable
+performer telemetry disable
 ```
 
-#### CLI Architecture
+### 🛠️ CLI Architecture
 
-The Performer CLI provides:
+**Project Templates:**
+- React 18 + TypeScript + Vite
+- Tailwind CSS + PostCSS + Autoprefixer
+- Biome (linter + formatter)
+- Hot Module Replacement (HMR)
+- Optimized production builds
 
-- **Project Templates**: Ready-to-use React + TypeScript + Tailwind CSS templates
-- **Vite Integration**: Hot Module Replacement (HMR) development server
-- **Turborepo Support**: Optimized builds for monorepo environments
-- **Auto-detection**: Automatically detects project type and available tools
+**Monorepo Support:**
+- Turborepo integration
+- Parallel builds and caching
+- Workspace dependency management
+- Cross-package optimizations
+
+## 🎮 Examples & Demos
+
+### Demo Applications
+
+Explore Performer with our example applications:
+
+#### BPMN Order Processing Demo
+```bash
+# Clone and run the demo
+cd apps/examples/demo-app
+pnpm install
+pnpm dev
+```
+
+#### CLI-Created App Demo
+```bash
+# The CLI creates apps like this demo
+cd apps/examples/npm-pkg-demo-app/my-app
+pnpm install
+pnpm dev
+```
+
+### 📖 Learning Resources
+
+- **Quick Start Guide**: Above setup instructions
+- **API Documentation**: Comprehensive package docs
+- **BPMN Tutorials**: Process modeling guides
+- **Migration Guide**: From other frameworks
 
 ### Basic Usage Example
 
@@ -388,6 +468,31 @@ const ssrPipeline = new SSRPipeline(router);
 const result = await ssrPipeline.render('/orders/123');
 ```
 
+### UI Components
+
+```typescript
+// src/components/Navigation.tsx
+import { Link, createActiveChecker } from '@gftdcojp/performer-ui';
+
+function Navigation() {
+  const isActive = createActiveChecker('/dashboard');
+
+  return (
+    <nav>
+      <Link href="/dashboard" activeClassName="active" isActive={isActive}>
+        <a>Dashboard</a>
+      </Link>
+      <Link href="/orders" className="nav-link">
+        <a>Orders</a>
+      </Link>
+      <Link href="/settings" className="nav-link" prefetch={false}>
+        <a>Settings</a>
+      </Link>
+    </nav>
+  );
+}
+```
+
 ## API Reference
 
 ### Main Exports
@@ -436,6 +541,7 @@ import {
 } from '@gftdcojp/performer';
 
 // Individual packages can also be imported separately:
+import { Link, createActiveChecker } from '@gftdcojp/performer-ui';
 import { createActions } from '@gftdcojp/performer-actions';
 import { EffectActorSystem } from '@gftdcojp/performer-actor';
 import { createNeo4jConnection } from '@gftdcojp/performer-data';
@@ -544,19 +650,64 @@ pnpm dev
 pnpm build
 ```
 
-## Version History
+## 🤝 Contributing
 
-### v1.0.0 (Latest)
-- 🎉 Initial release
-- BPMN process engine integration
-- Neo4j database adapter
-- Effect-based actor system
-- Auth0 authentication integration
-- TypeScript type-safe API
-- **Next.js-style CLI**: Complete development toolchain (create, dev, build, start, gen, db, info, telemetry)
-- **Vite + HMR**: Fast development server with hot module replacement
-- **Turborepo integration**: Optimized builds for monorepo environments
-- **Project templates**: Ready-to-use application templates with React + TypeScript
+We welcome contributions to Performer! Here's how you can help:
+
+### Development Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/gftdcojp/performer.git
+cd performer
+
+# Install dependencies
+pnpm install
+
+# Start development
+pnpm dev
+
+# Build all packages
+pnpm build
+```
+
+### 📝 Contribution Guidelines
+
+1. **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/gftdcojp/performer/issues)
+2. **Discussions**: Join community discussions on [GitHub Discussions](https://github.com/gftdcojp/performer/discussions)
+3. **Pull Requests**: Submit improvements via PR with clear descriptions
+4. **Documentation**: Help improve docs and examples
+
+### 🏗️ Architecture
+
+Performer follows **State-Space Software Design** principles:
+- **Domain-Driven Design**: Bounded contexts with clear boundaries
+- **Hexagonal Architecture**: Ports/adapters for clean separation
+- **Functional Programming**: Effect-based error handling and composition
+- **Type Safety**: End-to-end TypeScript with Zod validation
+
+### 📚 Resources
+
+- **Documentation**: Comprehensive API docs and guides
+- **Examples**: Working demo applications in `apps/examples/`
+- **Architecture**: State-space design principles in `story.jsonnet`
+
+## 📋 Version History
+
+### v1.0.0 (Latest) - Complete Framework Release 🚀
+- 🎉 **Production Ready**: Enterprise-grade BPMN process automation platform
+- 🏗️ **State-Space Architecture**: Domain-driven hexagonal architecture implementation
+- ⚡ **Next.js-Style CLI**: Full development toolchain (create/dev/build/start/gen/db/info/telemetry)
+- 🚀 **Modern Development Stack**: Vite + HMR, TypeScript 5.9, Tailwind CSS, Biome
+- 📦 **Modular Package Ecosystem**: 8 npm packages published to GitHub Packages
+- 🔄 **Monorepo Excellence**: Turborepo integration with parallel builds and caching
+- 🎨 **Automated Project Generation**: React 18 + TypeScript app templates
+- 🗄️ **Graph Database Integration**: Neo4j with type-safe Cypher queries via Neogma
+- 🎭 **Distributed Actor System**: Effect-based service task execution with fault tolerance
+- 🔐 **Enterprise Authentication**: Auth0 RBAC/ABAC with Remix-style actions
+- 📊 **Observability**: OpenTelemetry + Sentry distributed tracing and monitoring
+- 🎯 **BPMN Process Engine**: Complete business process automation with custom DSL
+- 🎨 **UI Components**: Next.js Link wrapper with active state detection and Zod validation
 
 ## License
 
@@ -577,8 +728,33 @@ Performer is built on top of these excellent open source projects:
 
 <div align="center">
 
-**Performer** - BPMN + Actor + Neo4j Web Framework
+## 🌟 Performer Framework
 
-[📦 npm](https://npm.pkg.github.com/@gftdcojp/performer) • [📚 Docs](https://github.com/gftdcojp/performer#readme) • [🐛 Issues](https://github.com/gftdcojp/performer/issues)
+**Enterprise-Grade BPMN Process Automation Platform**
+
+### 📦 Installation
+```bash
+# CLI (recommended)
+npm install -g @gftdcojp/performer-cli --registry=https://npm.pkg.github.com
+performer create my-app
+
+# Or individual packages
+npm install @gftdcojp/performer --registry=https://npm.pkg.github.com
+```
+
+### 🔗 Links
+- [📚 Documentation](https://github.com/gftdcojp/performer#readme)
+- [🐛 Issues](https://github.com/gftdcojp/performer/issues)
+- [💬 Discussions](https://github.com/gftdcojp/performer/discussions)
+- [📦 GitHub Packages](https://npm.pkg.github.com/@gftdcojp/performer)
+
+### 🏗️ Architecture
+**State-Space Software Design × Domain-Driven Design × Hexagonal Architecture**
+
+Built with ❤️ using TypeScript, Effect, Neo4j, and modern web technologies.
+
+---
+
+*Performer v1.0.0 - Production Ready BPMN Process Automation Framework*
 
 </div>
