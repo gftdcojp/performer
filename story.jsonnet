@@ -148,6 +148,15 @@
       recentChanges: ["Integrated error handling for BPMN validation", "Renamed to @gftdcojp/performer-process and added publishConfig.registry"]
     },
 
+    rpc: {
+      id: "pkg_rpc",
+      description: "Thin RPC layer for procedure registration and dispatch with I/O validation",
+      dependencies: ["error-handling", "process"],
+      provides: ["rpc-procedures", "http-handlers", "context-management"],
+      status: "implementing",
+      recentChanges: ["Adding Zod schemas for I/O validation", "Integrating standardized error handling", "Extending context with tenant/user metadata"]
+    },
+
     router: {
       id: "pkg_router",
       description: "Client-side routing utilities",
@@ -287,6 +296,7 @@
       "pkg_data",
       "pkg_error_handling",
       "pkg_process",
+      "pkg_rpc",
       "pkg_router",
       "pkg_ui",
       "app_demo"

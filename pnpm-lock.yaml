@@ -288,6 +288,9 @@ importers:
       '@gftdcojp/performer-process':
         specifier: workspace:*
         version: link:../process
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
     devDependencies:
       '@biomejs/biome':
         specifier: ^1.8.3

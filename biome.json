@@ -21,7 +21,8 @@
           "level": "error",
           "options": {
             "paths": {
-              "zod": "Zod is not allowed in this project. Use TypeScript types instead."
+              "node:crypto": "Use Web Crypto API instead for client/shared code",
+              "crypto": "Use Web Crypto API instead for client/shared code"
             }
           }
         }

@@ -10,7 +10,7 @@ export class OrpcRouter<C> {
 	private procs = new Map<string, Proc<C, any, any>>();
 
 	add<I, O>(name: string, handler: Proc<C, I, O>["handler"]): OrpcRouter<C> {
-		this.procs.set(name, { name, handler });
+		this.procs.set(name, { name, handler } as Proc<C, any, any>);
 		return this;
 	}
 

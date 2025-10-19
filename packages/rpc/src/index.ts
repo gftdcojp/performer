@@ -1,10 +1,14 @@
 // Merkle DAG: rpc_procedures -> process_integration -> unified_api
 // Process API procedures registration - domain logic delegation
 
-import { createRouter } from "./router";
+import {
+	type ProcessInstance,
+	type Task,
+	processEngine,
+} from "@gftdcojp/performer-process";
+import { type Context, createContextFromRequest } from "./context";
 import { createHttpHandler } from "./http";
-import { createContext, type Context } from "./context";
-import { processEngine, type ProcessInstance, type Task } from "@gftdcojp/performer-process";
+import { createRouter } from "./router";
 
 // Procedure definitions for process engine
 export const router = createRouter<Context>()
@@ -12,7 +16,11 @@ export const router = createRouter<Context>()
 		"process.start",
 		async (
 			_ctx,
-			input: { processId: string; businessKey: string; variables?: Record<string, any> },
+			input: {
+				processId: string;
+				businessKey: string;
+				variables?: Record<string, unknown>;
+			},
 		): Promise<ProcessInstance> => {
 			return processEngine.startProcess(
 				input.processId,
@@ -25,9 +33,17 @@ export const router = createRouter<Context>()
 		"process.signal",
 		async (
 			_ctx,
-			input: { instanceId: string; signal: string; variables?: Record<string, any> },
+			input: {
+				instanceId: string;
+				signal: string;
+				variables?: Record<string, unknown>;
+			},
 		): Promise<{ ok: true }> => {
-			await processEngine.signalProcess(input.instanceId, input.signal, input.variables);
+			await processEngine.signalProcess(
+				input.instanceId,
+				input.signal,
+				input.variables,
+			);
 			return { ok: true };
 		},
 	)
@@ -35,9 +51,17 @@ export const router = createRouter<Context>()
 		"process.completeTask",
 		async (
 			_ctx,
-			input: { instanceId: string; taskId: string; variables?: Record<string, any> },
+			input: {
+				instanceId: string;
+				taskId: string;
+				variables?: Record<string, unknown>;
+			},
 		): Promise<{ ok: true }> => {
-			await processEngine.completeTask(input.instanceId, input.taskId, input.variables);
+			await processEngine.completeTask(
+				input.instanceId,
+				input.taskId,
+				input.variables,
+			);
 			return { ok: true };
 		},
 	)
@@ -49,13 +73,18 @@ export const router = createRouter<Context>()
 	)
 	.add(
 		"process.getInstance",
-		async (_ctx, input: { instanceId: string }): Promise<ProcessInstance | undefined> => {
+		async (
+			_ctx,
+			input: { instanceId: string },
+		): Promise<ProcessInstance | undefined> => {
 			return processEngine.getInstance(input.instanceId);
 		},
 	);
 
 // HTTP handler factory
-export const handleOrpc = createHttpHandler(router, async (_req) => createContext());
+export const handleOrpc = createHttpHandler(router, async (req) =>
+	createContextFromRequest(req),
+);
 
 // Export types for client usage
 export type { Context };

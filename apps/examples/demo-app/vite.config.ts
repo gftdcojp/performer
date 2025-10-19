@@ -12,7 +12,11 @@ function orpcPlugin() {
 			server.middlewares.use("/orpc", async (req: any, res: any) => {
 				console.log("oRPC middleware called:", req.url);
 				try {
-					const url = new URL(req.url || "", "http://localhost");
+					// Parse URL - req.url might be just the pathname in Node.js
+					const urlString = req.url || "";
+					const url = urlString.startsWith("http") ? new URL(urlString) : new URL(urlString, "http://localhost");
+					console.log("Parsed URL pathname:", url.pathname);
+
 					if (url.pathname !== "/orpc") {
 						console.log("Not oRPC path:", url.pathname);
 						return;
