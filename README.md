@@ -35,12 +35,11 @@ Performer is a full-stack web framework that integrates Business Process Managem
 Performer provides the following npm packages:
 
 - `@gftdcojp/performer` - Integration package (bundles all features)
-- `@gftdcojp/performer/actions` - Remix loader/action + Auth0 guards
-- `@gftdcojp/performer/actor` - Effect-based actor system
-- `@gftdcojp/performer/data` - Neo4j + Neogma adapter
-- `@gftdcojp/performer/error-handling` - Integrated error handling system
-- `@gftdcojp/performer/process` - BPMN SDK wrapper
-- `@gftdcojp/performer/router` - Next.js style file-based router
+- `@gftdcojp/performer-actions` - Remix loader/action + Auth0 guards
+- `@gftdcojp/performer-actor` - Effect-based actor system
+- `@gftdcojp/performer-data` - Neo4j + Neogma adapter
+- `@gftdcojp/performer-process` - BPMN SDK wrapper
+- `@gftdcojp/performer-router` - Next.js style file-based router
 
 ## Quick Start
 
@@ -284,11 +283,10 @@ import {
   isCompleted,
   isRunning,
 
-  // Neo4j database
-  createNeo4jConnection,
-  createTransactionManager,
-  createProcessInstanceRepository,
-  createSchemaManager,
+  // Actions & Authentication
+  createActions,
+  AuthGuard,
+  ActionBuilder,
 
   // Actor system
   EffectActorSystem,
@@ -297,18 +295,26 @@ import {
 
   // BPMN processes
   ProcessBuilder,
+  ProcessEngine,
+  processEngine,
 
-  // Error handling
-  createErrorFactory,
-  globalRecoveryManager,
-
-  // Authentication & Actions
-  createActions,
+  // Neo4j database
+  createNeo4jConnection,
+  createTransactionManager,
+  createProcessInstanceRepository,
+  createSchemaManager,
 
   // Routing
   FileRouter,
   SSRPipeline
 } from '@gftdcojp/performer';
+
+// Individual packages can also be imported separately:
+import { createActions } from '@gftdcojp/performer-actions';
+import { EffectActorSystem } from '@gftdcojp/performer-actor';
+import { createNeo4jConnection } from '@gftdcojp/performer-data';
+import { ProcessBuilder } from '@gftdcojp/performer-process';
+import { FileRouter } from '@gftdcojp/performer-router';
 ```
 
 ## Project Templates

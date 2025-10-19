@@ -36,7 +36,7 @@ export class Neo4jConnection {
 				url: config.uri,
 				username: config.username,
 				password: config.password,
-				database: config.database,
+				...(config.database && { database: config.database }),
 			},
 			{
 				logger: console.log,
@@ -240,7 +240,7 @@ export class ProcessInstanceRepository extends BaseRepository<ProcessInstanceNod
 			status: record.status,
 			variables: JSON.parse(record.variables),
 			startTime: new Date(record.startTime),
-			endTime: record.endTime ? new Date(record.endTime) : undefined,
+			...(record.endTime && { endTime: new Date(record.endTime) }),
 			createdAt: new Date(record.createdAt),
 			updatedAt: new Date(record.updatedAt),
 		};
@@ -267,7 +267,7 @@ export class ProcessInstanceRepository extends BaseRepository<ProcessInstanceNod
 			status: record.status,
 			variables: JSON.parse(record.variables),
 			startTime: new Date(record.startTime),
-			endTime: record.endTime ? new Date(record.endTime) : undefined,
+			...(record.endTime && { endTime: new Date(record.endTime) }),
 			createdAt: new Date(record.createdAt),
 			updatedAt: new Date(record.updatedAt),
 		};

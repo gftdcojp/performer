@@ -1,5 +1,6 @@
 {
-	"name": "@pkg/observability",
+	"name": "@gftdcojp/performer-observability",
+	"private": true,
 	"version": "1.0.0",
 	"description": "OpenTelemetry, Sentry, structured logging (jsonl) for monitoring and auditing",
 	"main": "dist/index.js",

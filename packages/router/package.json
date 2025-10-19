@@ -1,5 +1,8 @@
 {
-	"name": "@pkg/router",
+	"name": "@gftdcojp/performer-router",
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com"
+	},
 	"version": "1.0.0",
 	"description": "Next.js style file-based router with SSR pipeline",
 	"main": "dist/index.js",

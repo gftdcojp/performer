@@ -183,22 +183,22 @@ export class ErrorFactory {
 		const context: ErrorContext = {
 			package: this.packageName,
 			operation,
-			userId: options.userId,
-			tenantId: options.tenantId,
+			...(options.userId !== undefined && { userId: options.userId }),
+			...(options.tenantId !== undefined && { tenantId: options.tenantId }),
 			correlationId: options.correlationId || this.generateCorrelationId(),
 			timestamp: new Date(),
-			metadata: options.metadata,
+			...(options.metadata !== undefined && { metadata: options.metadata }),
 		};
 
 		const error: StructuredError = {
 			code,
 			message,
 			context,
-			cause: options.cause,
-			stack: options.cause?.stack,
+			...(options.cause !== undefined && { cause: options.cause }),
+			...(options.cause?.stack !== undefined && { stack: options.cause.stack }),
 			severity: options.severity || ErrorSeverity.MEDIUM,
 			recoverable: options.recoverable ?? true,
-			suggestedAction: options.suggestedAction,
+			...(options.suggestedAction !== undefined && { suggestedAction: options.suggestedAction }),
 		};
 
 		// Report error asynchronously
@@ -380,7 +380,7 @@ export async function withErrorHandling<T>(
 				error instanceof Error ? error.message : "Unknown error occurred",
 				operationName,
 				{
-					cause: error instanceof Error ? error : undefined,
+					...(error instanceof Error && { cause: error }),
 					severity: ErrorSeverity.MEDIUM,
 				},
 			);
@@ -398,7 +398,7 @@ export async function withErrorHandling<T>(
 						"Operation failed even after recovery",
 						operationName,
 						{
-							cause: retryError instanceof Error ? retryError : undefined,
+							...(retryError instanceof Error && { cause: retryError }),
 							severity: ErrorSeverity.HIGH,
 						},
 					);

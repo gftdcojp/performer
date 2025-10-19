@@ -1,8 +1,8 @@
 {
-	"name": "@pkg/error-handling",
+	"name": "@gftdcojp/performer-error-handling",
+	"private": true,
 	"version": "1.0.0",
 	"description": "Unified error handling and reporting for all packages",
-	"private": true,
 	"main": "./dist/index.js",
 	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.ts",

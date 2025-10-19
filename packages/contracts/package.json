@@ -1,5 +1,6 @@
 {
-	"name": "@pkg/contracts",
+	"name": "@gftdcojp/performer-contracts",
+	"private": true,
 	"version": "1.0.0",
 	"description": "ts-rest + Zod schemas for I/O boundaries",
 	"main": "dist/index.js",

@@ -7,7 +7,17 @@ export const VERSION = "1.0.0";
 // Core framework name
 export const FRAMEWORK_NAME = "Performer";
 
-// Basic types
+// Re-export all packages
+export * from "@gftdcojp/performer-actions";
+export * from "@gftdcojp/performer-actor";
+export * from "@gftdcojp/performer-data";
+export * from "@gftdcojp/performer-process";
+
+// Error handling is private package, so only export specific functions if needed
+// export * from "@gftdcojp/performer-error-handling";
+export * from "@gftdcojp/performer-router";
+
+// For backward compatibility - keep existing exports
 export interface User {
   id: string;
   email: string;
@@ -53,11 +63,3 @@ export function isCompleted(instance: ProcessInstance): boolean {
 export function isRunning(instance: ProcessInstance): boolean {
   return instance.status === "running";
 }
-
-// Placeholder exports for future modules
-export const actions = {};
-export const actor = {};
-export const data = {};
-export const errorHandling = {};
-export const process = {};
-export const router = {};

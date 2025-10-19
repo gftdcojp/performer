@@ -1,5 +1,8 @@
 {
-	"name": "@pkg/actor",
+	"name": "@gftdcojp/performer-actor",
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com"
+	},
 	"version": "1.0.0",
 	"description": "effect-actor integration for service tasks/external events, supervisor/timeout/coordination",
 	"main": "dist/index.js",

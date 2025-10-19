@@ -1,5 +1,6 @@
 {
-	"name": "@pkg/dev-server",
+	"name": "@gftdcojp/performer-dev-server",
+	"private": true,
 	"version": "1.0.0",
 	"description": "Vite SSR dev server for .server.ts evaluation and props injection to page.client.tsx",
 	"main": "dist/index.js",

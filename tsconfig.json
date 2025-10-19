@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -14,7 +14,6 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "incremental": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -22,7 +21,7 @@
     "emitDecoratorMetadata": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "types": [],
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],

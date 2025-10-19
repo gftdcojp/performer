@@ -1,5 +1,8 @@
 {
-	"name": "@pkg/data",
+	"name": "@gftdcojp/performer-data",
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com"
+	},
 	"version": "1.0.0",
 	"description": "effect-cypher + neogma adapter for type-safe Cypher/Tx utilities/constraints",
 	"main": "dist/index.js",

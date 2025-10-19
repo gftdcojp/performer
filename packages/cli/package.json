@@ -1,5 +1,6 @@
 {
-	"name": "@pkg/cli",
+	"name": "@gftdcojp/performer-cli",
+	"private": true,
 	"version": "1.0.0",
 	"description": "CLI tools for create, dev, build, start, gen commands",
 	"main": "dist/index.js",
