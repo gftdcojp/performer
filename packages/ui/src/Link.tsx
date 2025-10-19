@@ -90,7 +90,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
 
 		React.useEffect(() => {
 			if (typeof window !== 'undefined' && isActive) {
-				setIsActiveLink(isActive(window.location.pathname));
+				setIsActiveLink(Boolean(isActive(window.location.pathname)));
 			}
 		}, [isActive]);
 
@@ -112,17 +112,22 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
 			return classes.join(' ') || undefined;
 		}, [className, activeClassName, isActiveLink]);
 
+		// Coerce optional booleans for Next.js Link props
+		const replaceBool = Boolean(replace);
+		const shallowBool = Boolean(shallow);
+
+		const nextLinkProps: any = {
+			href,
+			replace: replaceBool,
+			scroll,
+			shallow: shallowBool,
+			prefetch,
+			...(locale ? { locale } : { locale: false }),
+			...(as ? { as } : {}),
+		};
+
 		return (
-			<NextLink
-				href={href}
-				as={as}
-				replace={replace}
-				scroll={scroll}
-				shallow={shallow}
-				passHref={true} // Always pass href to child for our enhanced functionality
-				prefetch={prefetch}
-				locale={locale}
-			>
+			<NextLink {...nextLinkProps}>
 				{React.cloneElement(children as React.ReactElement, {
 					ref,
 					className: combinedClassName,
