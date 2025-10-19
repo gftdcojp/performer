@@ -30,6 +30,8 @@
     "vitest": "^1.6.0"
   },
   "dependencies": {
-    "bpmn-js": "^17.8.0"
+    "bpmn-js": "^17.8.0",
+    "@effect/schema": "^0.67.16",
+    "effect": "^3.10.4"
   }
 }

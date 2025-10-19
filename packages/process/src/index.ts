@@ -5,6 +5,10 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler'
 import BpmnViewer from 'bpmn-js/lib/Viewer'
 import { processErrorFactory, withErrorHandling, ErrorCodes, ErrorSeverity } from '@pkg/error-handling'
+export * from './types'
+export * from './schemas'
+export * from './util'
+export * from './guard'
 
 export interface ProcessDefinition {
   id: string
