@@ -1,5 +1,8 @@
 {
-	"name": "@pkg/process",
+	"name": "@gftdcojp/performer-process",
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com"
+	},
 	"version": "1.0.0",
 	"description": "BPMN SDK wrapper for DSL->IR->engine, start/signal/message, human task/SLA",
 	"main": "dist/index.js",
