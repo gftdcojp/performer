@@ -1,0 +1,62 @@
+services:
+  # Demo App
+  demo-app:
+    build: .
+    container_name: performer-demo-app
+    ports:
+      - "8100:8100"
+    environment:
+      - NODE_ENV=production
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=password
+      - AUTH0_DOMAIN=demo.auth0.com
+      - AUTH0_CLIENT_ID=demo-client-id
+      - AUTH0_AUDIENCE=demo-api
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - performer-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Neo4j Database
+  neo4j:
+    image: neo4j:5.0
+    container_name: performer-neo4j
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/password
+      - NEO4J_PLUGINS=["graph-data-science"]
+      - NEO4J_dbms_memory_heap_initial__size=512m
+      - NEO4J_dbms_memory_heap_max__size=1G
+      - NEO4J_dbms_memory_pagecache_size=512m
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - ./neo4j-init:/docker-entrypoint-initdb.d
+    networks:
+      - performer-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "password", "MATCH () RETURN count(*) limit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+
+networks:
+  performer-network:
+    driver: bridge
