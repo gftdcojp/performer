@@ -17,8 +17,10 @@ export interface Neo4jConfig {
 export class Neo4jConnection {
   private neogma: Neogma
   private driver: neo4j.Driver
+  private config: Neo4jConfig
 
   constructor(config: Neo4jConfig) {
+    this.config = config
     this.driver = neo4j.driver(
       config.uri,
       neo4j.auth.basic(config.username, config.password),

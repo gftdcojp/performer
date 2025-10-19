@@ -1,9 +1,10 @@
 // Merkle DAG: process_core -> bpmn_dsl -> engine -> task_handlers
 // BPMN SDK wrapper for DSL->IR->engine, start/signal/message, human task/SLA
 
+/// <reference lib="dom" />
 import BpmnModeler from 'bpmn-js/lib/Modeler'
 import BpmnViewer from 'bpmn-js/lib/Viewer'
-import { processErrorFactory, withErrorHandling, ErrorCodes } from '@pkg/error-handling'
+import { processErrorFactory, withErrorHandling, ErrorCodes, ErrorSeverity } from '@pkg/error-handling'
 
 export interface ProcessDefinition {
   id: string
@@ -147,13 +148,13 @@ export class ProcessEngine {
         try {
           await this.modeler.importXML(definition.xml)
         } catch (error) {
-          throw processErrorFactory.createError(
+            throw processErrorFactory.createError(
             ErrorCodes.BPMN_VALIDATION_FAILED,
             'Invalid BPMN XML',
             'deployProcess',
             {
               cause: error as Error,
-              severity: 'high' as const,
+              severity: ErrorSeverity.HIGH,
               suggestedAction: 'Check BPMN XML syntax and structure',
               metadata: { processId: definition.id, processName: definition.name }
             }

@@ -40,6 +40,7 @@
     "@pkg/contracts": "workspace:*",
     "@pkg/data": "workspace:*",
     "@pkg/dev-server": "workspace:*",
+    "@pkg/error-handling": "workspace:*",
     "@pkg/observability": "workspace:*",
     "@pkg/process": "workspace:*",
     "@pkg/router": "workspace:*",
