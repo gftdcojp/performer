@@ -45,7 +45,7 @@ docker-compose up -d
 ### アクセス
 
 - **Demo App**: http://localhost:8100
-- **Neo4j Browser**: http://localhost:7474 (ユーザー: neo4j, パスワード: password)
+- **Neo4j Browser**: http://localhost:7476 (ユーザー: neo4j, パスワード: password)
 
 ## ローカル開発環境
 

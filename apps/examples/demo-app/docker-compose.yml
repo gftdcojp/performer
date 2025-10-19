@@ -13,6 +13,7 @@ services:
       - AUTH0_DOMAIN=demo.auth0.com
       - AUTH0_CLIENT_ID=demo-client-id
       - AUTH0_AUDIENCE=demo-api
+      - PORT=8100
     depends_on:
       neo4j:
         condition: service_healthy
@@ -31,14 +32,16 @@ services:
     image: neo4j:latest
     container_name: performer-neo4j
     ports:
-      - "7475:7474"  # HTTP (changed from 7474 to avoid conflict)
-      - "7688:7687"  # Bolt (changed from 7687 to avoid conflict)
+      - "7476:7474"  # HTTP
+      - "7689:7687"  # Bolt
     environment:
       - NEO4J_AUTH=neo4j/password
       - NEO4J_PLUGINS=["graph-data-science"]
       - NEO4J_dbms_memory_heap_initial__size=512m
       - NEO4J_dbms_memory_heap_max__size=1G
       - NEO4J_dbms_memory_pagecache_size=512m
+      - NEO4J_dbms_connector_http_listen__address=:7474
+      - NEO4J_dbms_connector_bolt_listen__address=:7687
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs

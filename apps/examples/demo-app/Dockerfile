@@ -1,5 +1,5 @@
 # Demo App Dockerfile
-FROM node:18-alpine
+FROM node:18-alpine as builder
 
 # Install curl for health check
 RUN apk add --no-cache curl
@@ -19,8 +19,14 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Remove dev dependencies to reduce image size
-RUN npm prune --production
+# Production stage
+FROM nginx:alpine
+
+# Copy built files to nginx
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Expose port
 EXPOSE 8100
@@ -29,5 +35,5 @@ EXPOSE 8100
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8100/ || exit 1
 
-# Start the application
-CMD ["npm", "run", "demo"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
