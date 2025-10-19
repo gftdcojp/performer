@@ -88,3 +88,47 @@ export const handleOrpc = createHttpHandler(router, async (req) =>
 
 // Export types for client usage
 export type { Context };
+
+// Client SDK exports
+export {
+	RpcClient,
+	createClient,
+	getProcedureNames,
+	generateClientCode,
+	type ClientConfig,
+	type ProcedureMetadata,
+} from "./client";
+
+// Auth0 integration exports
+export {
+	decodeJwt,
+	extractAuth0Claims,
+	extractUserIdentity,
+	createContextWithAuth,
+	auth0RequestExtractor,
+	createContextFromRequestWithAuth,
+	type Auth0JwtPayload,
+	type Auth0Config,
+	type JwtValidationResult,
+} from "./auth";
+
+// Streaming exports
+export {
+	EventBroker,
+	createWebSocketHandler,
+	createSSEHandler,
+	globalEventBroker,
+	type StreamingEvent,
+	type WebSocketConnection,
+	type SSEConnection,
+	type StreamingConfig,
+} from "./streaming";
+
+// Observability exports
+export {
+	RPCObservability,
+	initializeRPCObservability,
+	getRPCObservability,
+	withObservability,
+	type RPCMetrics,
+} from "./metrics";

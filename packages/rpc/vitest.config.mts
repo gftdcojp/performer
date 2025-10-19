@@ -8,6 +8,7 @@ export default defineConfig({
 		alias: {
 			"@pkg/process": "../../process/src/index.ts",
 			"@pkg/error-handling": "../../error-handling/src/index.ts",
+			"@gftdcojp/performer-observability": "../../observability/src/index.ts",
 		},
 	},
 });

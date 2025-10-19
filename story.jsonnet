@@ -152,9 +152,17 @@
       id: "pkg_rpc",
       description: "Thin RPC layer for procedure registration and dispatch with I/O validation",
       dependencies: ["error-handling", "process"],
-      provides: ["rpc-procedures", "http-handlers", "context-management"],
+      provides: ["rpc-procedures", "http-handlers", "context-management", "client-sdk", "streaming", "metrics"],
       status: "implementing",
-      recentChanges: ["Adding Zod schemas for I/O validation", "Integrating standardized error handling", "Extending context with tenant/user metadata"]
+      recentChanges: [
+        "Adding Zod schemas for I/O validation",
+        "Integrating standardized error handling",
+        "Extending context with tenant/user metadata",
+        "Planning: Type-safe client SDK generation",
+        "Planning: Auth0 JWT integration",
+        "Planning: WebSocket/Server-Sent Events streaming",
+        "Planning: OpenTelemetry metrics integration"
+      ]
     },
 
     router: {
@@ -340,6 +348,10 @@
     ],
 
     shortTerm: [
+      "RPC client SDK generation",
+      "Auth0 JWT integration",
+      "WebSocket/Server-Sent Events streaming",
+      "OpenTelemetry metrics integration",
       "Multi-tenant architecture",
       "CI: automated publish to GitHub Packages on tagged releases",
       "Real-time process monitoring",
