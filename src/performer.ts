@@ -53,11 +53,3 @@ export function isCompleted(instance: ProcessInstance): boolean {
 export function isRunning(instance: ProcessInstance): boolean {
   return instance.status === "running";
 }
-
-// Placeholder exports for future modules
-export const actions = {};
-export const actor = {};
-export const data = {};
-export const errorHandling = {};
-export const process = {};
-export const router = {};

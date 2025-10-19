@@ -1,8 +1,17 @@
 {
-  "name": "performer",
+  "name": "@gftdcojp/performer",
   "version": "1.0.0",
   "description": "BPMN + Actor + Neo4j Web Framework",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gftdcojp/performer.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "files": ["dist"],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "packageManager": "pnpm@10.18.3",
   "scripts": {
     "build": "turbo run build",
