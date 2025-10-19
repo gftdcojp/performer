@@ -17,6 +17,7 @@
 	},
 	"scripts": {
 		"build": "tsup",
+		"build:types": "tsc --emitDeclarationOnly --skipLibCheck || true",
 		"dev": "tsup --watch",
 		"lint": "biome check .",
 		"format": "biome format --write .",

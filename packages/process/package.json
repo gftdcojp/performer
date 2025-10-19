@@ -22,6 +22,7 @@
 	},
 	"scripts": {
 		"build": "tsup",
+		"build:types": "tsc --emitDeclarationOnly",
 		"dev": "tsup --watch",
 		"lint": "biome check .",
 		"format": "biome format --write .",

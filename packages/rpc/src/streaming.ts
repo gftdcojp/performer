@@ -86,9 +86,6 @@ export class EventBroker {
 
 	// Publish event to all subscribers
 	publish(event: StreamingEvent): void {
-		const subs = this.subscribers.get(event.type);
-		if (!subs) return;
-
 		// Add timestamp if not present
 		const enrichedEvent = {
 			...event,
@@ -107,16 +104,19 @@ export class EventBroker {
 			buffer.shift();
 		}
 
-		// Send to all subscribers
-		for (const connection of subs) {
-			try {
-				if (this.isWebSocketConnection(connection)) {
-					connection.send(enrichedEvent);
-				} else {
-					this.sendToSSE(connection, enrichedEvent);
+		// Send to all subscribers (if any)
+		const subs = this.subscribers.get(event.type);
+		if (subs) {
+			for (const connection of subs) {
+				try {
+					if (this.isWebSocketConnection(connection)) {
+						connection.send(enrichedEvent);
+					} else {
+						this.sendToSSE(connection, enrichedEvent);
+					}
+				} catch (error) {
+					console.error(`Failed to send event to connection ${connection.id}:`, error);
 				}
-			} catch (error) {
-				console.error(`Failed to send event to connection ${connection.id}:`, error);
 			}
 		}
 	}
@@ -215,20 +215,26 @@ export function createWebSocketHandler<C extends Context>(
 						const { procedure, input, id } = message;
 						try {
 							const result = await router.call(procedure, context, input);
-							connection.send({
+							const event: StreamingEvent = {
 								type: "rpc_response",
 								data: { id, result },
-								correlationId: context.correlationId,
-							});
+							};
+							if (context.correlationId) {
+								event.correlationId = context.correlationId;
+							}
+							connection.send(event);
 						} catch (error) {
-							connection.send({
+							const event: StreamingEvent = {
 								type: "rpc_error",
 								data: {
 									id,
 									error: error instanceof Error ? error.message : String(error)
 								},
-								correlationId: context.correlationId,
-							});
+							};
+							if (context.correlationId) {
+								event.correlationId = context.correlationId;
+							}
+							connection.send(event);
 						}
 						return;
 					}

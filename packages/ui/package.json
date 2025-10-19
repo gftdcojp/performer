@@ -21,8 +21,8 @@
 		}
 	},
 	"scripts": {
-		"build": "tsup && tsc -p tsconfig.build.json",
-		"build:types": "tsc -p tsconfig.build.json",
+		"build": "tsup",
+		"build:types": "tsc --emitDeclarationOnly",
 		"dev": "tsup --watch",
 		"lint": "biome check .",
 		"format": "biome format --write .",

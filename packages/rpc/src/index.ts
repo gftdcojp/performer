@@ -1,11 +1,8 @@
 // Merkle DAG: rpc_procedures -> process_integration -> unified_api
 // Process API procedures registration - domain logic delegation
 
-import {
-	type ProcessInstance,
-	type Task,
-	processEngine,
-} from "@gftdcojp/performer-process";
+import { processEngine } from "@gftdcojp/performer-process";
+import type { ProcessInstance, Task } from "@gftdcojp/performer-process";
 import { type Context, createContextFromRequest } from "./context";
 import { createHttpHandler } from "./http";
 import { createRouter } from "./router";

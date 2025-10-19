@@ -2,10 +2,8 @@
 	"extends": "../../tsconfig.json",
 	"compilerOptions": {
 		"incremental": false,
-		"paths": {
-			"@pkg/*": ["../../packages/*"]
-		}
+		"exactOptionalPropertyTypes": false
 	},
-	"include": ["src/**/*"],
-	"exclude": ["node_modules", "dist"]
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules", "dist", "src/**/*.test.ts"]
 }

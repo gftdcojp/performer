@@ -16,6 +16,7 @@
 	"files": ["dist"],
 	"scripts": {
 		"build": "tsup",
+		"build:types": "tsc --emitDeclarationOnly",
 		"dev": "tsup --watch",
 		"test": "vitest run",
 		"test:watch": "vitest",
