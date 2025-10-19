@@ -3,6 +3,11 @@
 	"publishConfig": {
 		"registry": "https://npm.pkg.github.com"
 	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
 	"version": "1.0.0",
 	"description": "BPMN SDK wrapper for DSL->IR->engine, start/signal/message, human task/SLA",
 	"main": "dist/index.js",

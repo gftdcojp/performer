@@ -3,6 +3,11 @@
 	"publishConfig": {
 		"registry": "https://npm.pkg.github.com"
 	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
 	"version": "1.0.0",
 	"description": "effect-cypher + neogma adapter for type-safe Cypher/Tx utilities/constraints",
 	"main": "dist/index.js",

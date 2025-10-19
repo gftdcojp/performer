@@ -3,6 +3,11 @@
 	"publishConfig": {
 		"registry": "https://npm.pkg.github.com"
 	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
 	"version": "1.0.0",
 	"description": "effect-actor integration for service tasks/external events, supervisor/timeout/coordination",
 	"main": "dist/index.js",

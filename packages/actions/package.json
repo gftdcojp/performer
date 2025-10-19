@@ -3,6 +3,11 @@
 	"publishConfig": {
 		"registry": "https://npm.pkg.github.com"
 	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
 	"version": "1.0.0",
 	"description": "Remix-style loader/action implementation with Auth0 guard and Zod validation",
 	"main": "dist/index.js",

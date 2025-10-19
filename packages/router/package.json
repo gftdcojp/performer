@@ -3,6 +3,11 @@
 	"publishConfig": {
 		"registry": "https://npm.pkg.github.com"
 	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
 	"version": "1.0.0",
 	"description": "Next.js style file-based router with SSR pipeline",
 	"main": "dist/index.js",
