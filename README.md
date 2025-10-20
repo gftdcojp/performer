@@ -1,6 +1,6 @@
 # Performer
 
-BPMN + Actor + Neo4j Web Framework (Next.js Type Conventions × Remix Boundaries × Effect Execution)
+BPMN + Actor + Neo4j Web Framework (Remix Boundaries × Effect Execution)
 
 [![npm version](https://img.shields.io/badge/npm-v1.0.0-blue.svg)](https://npm.pkg.github.com/@gftdcojp/performer)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -8,13 +8,13 @@ BPMN + Actor + Neo4j Web Framework (Next.js Type Conventions × Remix Boundaries
 
 ## Overview
 
-Performer is a full-stack web framework that integrates Business Process Management (BPMN), actor systems, and Neo4j database. It provides a unique architecture combining Next.js file-based routing, Remix's loader/action patterns, and Effect's functional programming.
+Performer is a full-stack web framework that integrates Business Process Management (BPMN), actor systems, and Neo4j database. It adopts Remix's loader/action boundaries with Effect's functional programming.
 
 **🚀 Key Highlights:**
-- **Complete CLI Toolchain**: Next.js-style `create`, `dev`, `build` commands
+- **Complete CLI Toolchain**: `create`, `dev`, `build` commands
 - **Modern Development**: Vite + HMR, TypeScript, Tailwind CSS
 - **Enterprise Ready**: BPMN process automation with graph database persistence
-- **UI Components Library**: Next.js Link wrapper with active state detection
+- **UI Components Library**: Framework-agnostic navigation components with active state detection
 - **Modular Architecture**: Independent npm packages for flexible composition
 - **Developer Experience**: Comprehensive tooling with hot reloading and optimized builds
 
@@ -40,13 +40,13 @@ Performer is a full-stack web framework that integrates Business Process Managem
 |-------|------------|-------------|
 | **CLI & Tooling** | Custom CLI + Turborepo | Next.js-style commands, monorepo orchestration |
 | **Development** | Vite + TypeScript | Hot reloading, type safety, modern tooling |
-| **Routing** | File-based Router | Next.js style `app/**/{page.client.tsx|page.tsx}` + `layout(.client).tsx` composition |
-| **Boundary Management** | Remix Actions | Server/client boundary with loader/action patterns |
+| **Routing** | Remix Routes | `app/routes/*` with nested layouts |
+| **Boundary Management** | Remix Loaders/Actions | Server/client boundary with loader/action patterns |
 | **Execution Foundation** | Effect | Functional programming and error handling |
 | **Process Engine** | BPMN SDK | Control flow definition and execution |
 | **Actor** | Effect Actor | Distributed service task execution |
 | **Data** | Neo4j + Neogma | Type-safe Cypher queries |
-| **UI Components** | React + Next.js Link | Enhanced navigation with active state detection |
+| **UI Components** | React + Provider-based Link | Enhanced navigation with active state detection |
 | **UI** | React + Tailwind | Modern user interface |
 | **RPC Framework** | Custom RPC Layer | Type-safe procedure calls with I/O validation |
 | **Authentication** | Auth0 | RBAC/ABAC access control with JWT integration |
@@ -60,12 +60,12 @@ Performer provides the following npm packages:
 - `@gftdcojp/performer` - Integration package (bundles all features)
 - `@gftdcojp/performer-cli` - Next.js-style CLI with create, dev, build commands
 - `@gftdcojp/performer-rpc` - Thin RPC layer with I/O validation, streaming, and observability
-- `@gftdcojp/performer-ui` - UI components library with Next.js Link wrapper
+- `@gftdcojp/performer-ui` - UI components library with provider-based navigation (framework-agnostic)
 - `@gftdcojp/performer-actions` - Remix loader/action + Auth0 guards
 - `@gftdcojp/performer-actor` - Effect-based actor system
 - `@gftdcojp/performer-data` - Neo4j + Neogma adapter
 - `@gftdcojp/performer-process` - BPMN SDK wrapper
-- `@gftdcojp/performer-router` - Next.js style file-based router
+- `@gftdcojp/performer-router` - (deprecated) Next-style file-based router and SSR pipeline
 
 ### CLI Capabilities
 
@@ -512,44 +512,33 @@ export const actions = createActions(auth0Config);
 export const secureActions = actions.roles('admin', 'manager');
 ```
 
-### Routing
+### Routing (Remix)
 
 ```typescript
-// src/router/setup.ts
-import { FileRouter, SSRPipeline } from '@gftdcojp/performer';
-
-// Router configuration
-const routerConfig = {
-  basePath: '/app',
-  appDir: './src/pages'
-};
-
-// Create file router
-const router = new FileRouter(routerConfig);
-
-// Create SSR pipeline
-const ssrPipeline = new SSRPipeline(router);
-
-// Render page
-const result = await ssrPipeline.render('/orders/123');
+// app/routes/api.rpc.ts
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { handleOrpc } from "@gftdcojp/performer-rpc";
+export const loader = async ({ request }: LoaderFunctionArgs) => handleOrpc(request);
+export const action = async ({ request }: ActionFunctionArgs) => handleOrpc(request);
 ```
 
-#### File structure and resolution
+```tsx
+// app/root.tsx (NavigationProvider wiring)
+import { NavigationProvider } from "@gftdcojp/performer-ui";
+import { Link as RemixLink, useLocation } from "@remix-run/react";
 
-```
-app/
-  layout.tsx               // optional root layout (or layout.client.tsx)
-  orders/
-    layout.client.tsx      // optional nested layout (preferred client version)
-    page.client.tsx        // preferred page entry
-    page.tsx               // fallback page entry when client file is absent
-    loader.server.ts       // optional SSR data loader (returns props)
-    action.server.ts       // optional server action
-```
+function RemixLinkAdapter({ to, href, ...rest }: any) {
+  return <RemixLink to={to ?? href ?? "#"} {...rest} />;
+}
 
-- Page resolution: `page.client.tsx` → fallback to `page.tsx` if not present
-- Layout discovery: ascend directories and compose `layout.client.tsx` → fallback to `layout.tsx`
-- Composition order: root layout → nested layouts → page
+export default function App() {
+  return (
+    <NavigationProvider Link={RemixLinkAdapter} usePathname={() => useLocation().pathname}>
+      {/* ... */}
+    </NavigationProvider>
+  );
+}
+```
 
 ### UI Components
 
@@ -618,9 +607,9 @@ import {
   createProcessInstanceRepository,
   createSchemaManager,
 
-  // Routing
-  FileRouter,
-  SSRPipeline
+  // Routing (deprecated)
+  // FileRouter,
+  // SSRPipeline
 } from '@gftdcojp/performer';
 
 // Individual packages can also be imported separately:
@@ -801,8 +790,7 @@ MIT License - See [LICENSE](LICENSE) file for details.
 
 Performer is built on top of these excellent open source projects:
 
-- [Next.js](https://nextjs.org/) - File-based routing inspiration
-- [Remix](https://remix.run/) - Loader/action pattern reference
+- [Remix](https://remix.run/) - Loader/action boundary
 - [Effect](https://effect.website/) - Functional programming foundation
 - [BPMN.io](https://bpmn.io/) - BPMN processing library
 - [Neo4j](https://neo4j.com/) - Graph database
