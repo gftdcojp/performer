@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["@remix-run/node", "@remix-run/react"]
+  },
+  "include": ["app/**/*.ts", "app/**/*.tsx"]
+}
+
+

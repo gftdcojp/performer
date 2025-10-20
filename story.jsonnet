@@ -55,7 +55,7 @@
     },
 
     technology: {
-      frontend: "React 18 + Vite + TypeScript + Tailwind CSS",
+      frontend: "Remix v2 (Vite) + React 18 + TypeScript + Tailwind CSS",
       backend: "Effect + Node.js + TypeScript",
       database: "Neo4j + Neogma ORM",
       process: "BPMN.js + Custom DSL",
@@ -169,29 +169,30 @@
 
     router: {
       id: "pkg_router",
-      description: "File-based router with SSR pipeline and layout/page composition",
+      description: "Routing utilities (Remix-first). Next.js-style SSR/file router deprecated",
       dependencies: ["error-handling"],
       provides: [
-        "file-based-matching",
-        "ssr-loader/action integration",
-        "layout-composition",
-        "page.client.tsx fallback to page.tsx"
+        "remix-loader/action adapters",
+        "routing helpers"
       ],
       status: "implemented",
       recentChanges: [
-        "Added Next.js-like layout discovery and composition",
-        "Added page.tsx fallback when page.client.tsx is absent",
-        "Exported FileRouter and SSRPipeline from package entry"
+        "Deprecated Next.js-like layout discovery and page.tsx fallback",
+        "Adopted Remix loader/action at boundaries"
       ]
     },
 
     ui: {
       id: "pkg_ui",
-      description: "UI components library with Next.js Link wrapper",
+      description: "UI components library with framework-agnostic navigation provider",
       dependencies: ["error-handling"],
       provides: ["ui-components", "navigation-components", "link-component"],
       status: "implemented",
-      recentChanges: ["Created new UI components package with Next.js Link wrapper", "Added Link component with active state detection", "Implemented type-safe props validation with Zod"]
+      recentChanges: [
+        "Removed Next.js dependencies; added NavigationProvider adapter",
+        "Link/NavLink/Breadcrumbs now provider-based",
+        "Type-safe props validation with Zod"
+      ]
     }
   },
 

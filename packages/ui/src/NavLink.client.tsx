@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import NextLink from "next/link";
-import { usePathname } from "next/navigation";
+import { useNavigation } from "./navigation";
 
 // Merkle DAG: ui_components -> navigation -> navlink_component
 
@@ -27,11 +26,12 @@ export function NavLink({
   children,
   ...rest
 }: NavLinkProps) {
+  const { Link, usePathname } = useNavigation();
   const pathname = usePathname();
 
   const isActive = React.useMemo(() => {
     if (!pathname) return false;
-    return exact ? pathname === href : pathname === href || pathname.startsWith(href + "/");
+    return exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
   }, [pathname, href, exact]);
 
   const combined = React.useMemo(() => {
@@ -42,13 +42,9 @@ export function NavLink({
   }, [className, activeClassName, isActive]);
 
   return (
-    <NextLink href={href} prefetch={prefetch} passHref>
-      {React.cloneElement(children as React.ReactElement, {
-        className: combined,
-        ...(isActive ? { "aria-current": "page" } : {}),
-        ...rest,
-      })}
-    </NextLink>
+    <Link href={href} className={combined} {...(isActive ? { "aria-current": "page" } : {})} {...rest}>
+      {children as React.ReactElement}
+    </Link>
   );
 }
 

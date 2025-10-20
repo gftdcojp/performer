@@ -1,22 +1,15 @@
 import React, { forwardRef } from 'react';
-import NextLink from 'next/link';
 import { z } from 'zod';
+import { useNavigation } from './navigation';
 
 // Merkle DAG: ui_components -> navigation -> link_component
-// Next.js Link wrapper with enhanced features and validation
+// Framework-agnostic Link powered by NavigationProvider adapter
 
 /**
  * Link component props schema for validation
  */
 const LinkPropsSchema = z.object({
 	href: z.string().min(1, 'href is required'),
-	as: z.string().optional(),
-	replace: z.boolean().optional(),
-	scroll: z.boolean().optional().default(true),
-	shallow: z.boolean().optional(),
-	passHref: z.boolean().optional(),
-	prefetch: z.boolean().optional().default(true),
-	locale: z.string().optional(),
 	children: z.any(),
 	// Additional props for enhanced functionality
 	className: z.string().optional(),
@@ -28,9 +21,7 @@ const LinkPropsSchema = z.object({
 /**
  * Link component props type
  */
-export type LinkProps = z.infer<typeof LinkPropsSchema> & {
-	ref?: React.Ref<HTMLAnchorElement>;
-};
+export type LinkProps = z.infer<typeof LinkPropsSchema> & { ref?: React.Ref<HTMLAnchorElement> };
 
 /**
  * Enhanced Link component similar to Next.js Link with additional features
@@ -49,13 +40,6 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
 	(
 		{
 			href,
-			as,
-			replace,
-			scroll = true,
-			shallow,
-			passHref,
-			prefetch = true,
-			locale,
 			children,
 			className,
 			activeClassName,
@@ -65,18 +49,12 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
 		},
 		ref
 	) => {
+		const { Link: Impl, usePathname } = useNavigation();
 		// Validate props at runtime (development only)
 		if (process.env.NODE_ENV === 'development') {
 			try {
 				LinkPropsSchema.omit({ children: true }).parse({
 					href,
-					as,
-					replace,
-					scroll,
-					shallow,
-					passHref,
-					prefetch,
-					locale,
 					className,
 					activeClassName,
 				});
@@ -88,11 +66,12 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
 		// Check if link is active (client-side only)
 		const [isActiveLink, setIsActiveLink] = React.useState(false);
 
+		const pathname = usePathname();
 		React.useEffect(() => {
-			if (typeof window !== 'undefined' && isActive) {
-				setIsActiveLink(Boolean(isActive(window.location.pathname)));
+			if (isActive) {
+				setIsActiveLink(Boolean(isActive(pathname)));
 			}
-		}, [isActive]);
+		}, [isActive, pathname]);
 
 		// Handle click events
 		const handleClick = React.useCallback(
@@ -109,32 +88,19 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
 			const classes = [];
 			if (className) classes.push(className);
 			if (activeClassName && isActiveLink) classes.push(activeClassName);
-			return classes.join(' ') || undefined;
+			return classes.join(" ") || undefined;
 		}, [className, activeClassName, isActiveLink]);
 
-		// Coerce optional booleans for Next.js Link props
-		const replaceBool = Boolean(replace);
-		const shallowBool = Boolean(shallow);
-
-		const nextLinkProps: any = {
-			href,
-			replace: replaceBool,
-			scroll,
-			shallow: shallowBool,
-			prefetch,
-			...(locale ? { locale } : { locale: false }),
-			...(as ? { as } : {}),
-		};
-
 		return (
-			<NextLink {...nextLinkProps}>
-				{React.cloneElement(children as React.ReactElement, {
-					ref,
-					className: combinedClassName,
-					onClick: handleClick,
-					...rest,
-				})}
-			</NextLink>
+			<Impl
+				to={href}
+				href={href}
+				className={combinedClassName}
+				onClick={handleClick as unknown as React.MouseEventHandler<HTMLAnchorElement>}
+				{...rest}
+			>
+				{children as React.ReactElement}
+			</Impl>
 		);
 	}
 );
@@ -143,7 +109,7 @@ Link.displayName = 'Link';
 
 // Utility function for active link detection
 export const createActiveChecker = (href: string) => (pathname: string): boolean => {
-	return pathname === href || pathname.startsWith(href + '/');
+	return pathname === href || pathname.startsWith(`${href}/`);
 };
 
 export default Link;

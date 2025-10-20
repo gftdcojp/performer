@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import NextLink from "next/link";
-import { useSelectedLayoutSegments } from "next/navigation";
+import { useNavigation } from "./navigation";
 
 // Merkle DAG: ui_components -> navigation -> breadcrumbs_component
 
@@ -22,7 +21,8 @@ export function Breadcrumbs({
   separator = "/",
   segmentLabel = (s) => s,
 }: BreadcrumbsProps) {
-  const segments = useSelectedLayoutSegments();
+  const { useSegments, Link } = useNavigation();
+  const segments = useSegments();
 
   const items = React.useMemo(() => {
     const acc: { href: string; label: string }[] = [];
@@ -41,9 +41,9 @@ export function Breadcrumbs({
       <ol>
         {items.map((item, idx) => (
           <li key={item.href}>
-            <NextLink href={item.href} prefetch>
-              <a {...(idx === items.length - 1 ? { "aria-current": "page" } : undefined)}>{item.label}</a>
-            </NextLink>
+            <Link href={item.href} {...(idx === items.length - 1 ? { "aria-current": "page" } : undefined)}>
+              <a href={item.href}>{item.label}</a>
+            </Link>
             {idx < items.length - 1 ? <span aria-hidden>{separator}</span> : null}
           </li>
         ))}
