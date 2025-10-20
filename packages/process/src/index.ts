@@ -3,11 +3,11 @@
 
 /// <reference lib="dom" />
 import {
-	processErrorFactory,
-	withErrorHandling,
-	ErrorCodes,
-	ErrorSeverity,
-} from "@pkg/error-handling";
+    processErrorFactory,
+    withErrorHandling,
+    ErrorCodes,
+    ErrorSeverity,
+} from "@gftdcojp/performer-error-handling";
 
 // Dynamic import for browser-only modules
 let BpmnModeler: any = null;

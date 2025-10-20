@@ -7,7 +7,7 @@ import {
 	dataErrorFactory,
 	withErrorHandling,
 	ErrorCodes,
-} from "@pkg/error-handling";
+} from "@gftdcojp/performer-error-handling";
 
 // Neo4j connection configuration
 export interface Neo4jConfig {

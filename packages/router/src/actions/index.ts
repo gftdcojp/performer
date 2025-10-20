@@ -6,7 +6,7 @@ import {
 	actionsErrorFactory,
 	withErrorHandling,
 	ErrorCodes,
-} from "@pkg/error-handling";
+} from "@gftdcojp/performer-error-handling";
 
 export interface User {
 	id: string;

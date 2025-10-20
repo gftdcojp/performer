@@ -4,10 +4,10 @@
 import { Neogma, ModelFactory } from "neogma";
 import * as neo4j from "neo4j-driver";
 import {
-	dataErrorFactory,
-	withErrorHandling,
-	ErrorCodes,
-} from "@pkg/error-handling";
+    dataErrorFactory,
+    withErrorHandling,
+    ErrorCodes,
+} from "@gftdcojp/performer-error-handling";
 
 // Neo4j connection configuration
 export interface Neo4jConfig {

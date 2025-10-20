@@ -41,6 +41,7 @@
 	"dependencies": {
 		"bpmn-js": "^17.8.0",
 		"@effect/schema": "^0.67.16",
-		"effect": "^3.10.4"
+    "effect": "^3.10.4",
+    "@gftdcojp/performer-error-handling": "workspace:*"
 	}
 }

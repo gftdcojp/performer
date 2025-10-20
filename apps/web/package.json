@@ -14,6 +14,7 @@
     "@remix-run/react": "^2.12.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "@gftdcojp/performer-observability": "workspace:*",
     "@gftdcojp/performer-ui": "workspace:*",
     "@gftdcojp/performer-process": "workspace:*",
     "@gftdcojp/performer-rpc": "workspace:*",

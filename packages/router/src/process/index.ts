@@ -9,7 +9,7 @@ import {
 	withErrorHandling,
 	ErrorCodes,
 	ErrorSeverity,
-} from "@pkg/error-handling";
+} from "@gftdcojp/performer-error-handling";
 export * from "./types";
 export * from "./schemas";
 export * from "./util";

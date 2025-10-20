@@ -121,11 +121,5 @@ export {
 	type StreamingConfig,
 } from "./streaming";
 
-// Observability exports
-export {
-	RPCObservability,
-	initializeRPCObservability,
-	getRPCObservability,
-	withObservability,
-	type RPCMetrics,
-} from "./metrics";
+// Observability exports (moved to subpath to avoid forcing SSR dependency resolution)
+// import from "@gftdcojp/performer-rpc/metrics" when needed
