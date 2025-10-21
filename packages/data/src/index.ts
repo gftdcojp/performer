@@ -1,13 +1,16 @@
-// Merkle DAG: data_core -> neogma_models -> cypher_queries -> transaction_mgmt
-// Effect-cypher + neogma adapter for type-safe Cypher/Tx utilities/constraints
+// Merkle DAG: data_core -> ontology -> neogma_models -> cypher_queries -> transaction_mgmt
+// Effect-cypher + neogma adapter for type-safe Cypher/Tx utilities/constraints with ontology integration
 
 import { Neogma, ModelFactory } from "neogma";
 import * as neo4j from "neo4j-driver";
+import { cypher, CypherResult } from "@neo4j/cypher-builder";
 import {
     dataErrorFactory,
     withErrorHandling,
     ErrorCodes,
 } from "@gftdcojp/performer-error-handling";
+import { ProcessInstanceSchema, UserSchema, TenantSchema, TenantContextSchema, TenantProcessConfigSchema, PerformerSchemas } from "@gftdcojp/ai-gftd-ontology-typebox";
+import { Static } from "@sinclair/typebox";
 
 // Neo4j connection configuration
 export interface Neo4jConfig {
@@ -87,25 +90,17 @@ export class Neo4jConnection {
 	}
 }
 
-// Base model with common fields
+// Base model with common fields (ontology-compliant)
 export interface BaseNode {
 	id: string;
-	createdAt: Date;
-	updatedAt: Date;
+	tenantId: string;
+	userId: string;
+	createdAt: string; // ISO date string for JSON-LD compatibility
+	updatedAt: string;
 }
 
-// BPMN Process Instance Model
-export interface ProcessInstanceNode extends BaseNode {
-	processId: string;
-	businessKey: string;
-	status: "running" | "completed" | "suspended" | "terminated";
-	variables: Record<string, any>;
-	startTime: Date;
-	endTime?: Date;
-}
-
-// Note: ModelFactory usage simplified for basic operations
-// In production, use proper neogma model definitions
+// BPMN Process Instance Model (ontology-integrated)
+export type ProcessInstanceNode = Static<typeof ProcessInstanceSchema>;
 export type ProcessInstanceModel = ProcessInstanceNode;
 
 // Task Model
@@ -123,20 +118,25 @@ export interface TaskNode extends BaseNode {
 // Note: ModelFactory usage simplified for basic operations
 export type TaskModel = TaskNode;
 
-// User Model
-export interface UserNode extends BaseNode {
-	userId: string;
-	email: string;
-	roles: string[];
-	tenantId: string;
-}
-
-// Note: ModelFactory usage simplified for basic operations
+// User Model (ontology-integrated)
+export type UserNode = Static<typeof UserSchema>;
 export type UserModel = UserNode;
 
-// Transaction Manager
+// Tenant Model (ontology-integrated)
+export type TenantNode = Static<typeof TenantSchema>;
+export type TenantModel = TenantNode;
+
+// Tenant Context Model
+export type TenantContextNode = Static<typeof TenantContextSchema>;
+export type TenantContextModel = TenantContextNode;
+
+// Tenant Process Config Model
+export type TenantProcessConfigNode = Static<typeof TenantProcessConfigSchema>;
+export type TenantProcessConfigModel = TenantProcessConfigNode;
+
+// Transaction Manager (enhanced with cypher-builder and tenant isolation)
 export class TransactionManager {
-	constructor(private connection: Neo4jConnection) {}
+	constructor(private connection: Neo4jConnection, private tenantId?: string) {}
 
 	async executeInTransaction<T>(
 		operation: (tx: neo4j.ManagedTransaction) => Promise<T>,
@@ -163,6 +163,57 @@ export class TransactionManager {
 			await session.close();
 		}
 	}
+
+	// Execute CypherQuery using cypher-builder
+	async executeCypherQuery(query: CypherResult): Promise<any[]> {
+		const session = this.connection.getDriver().session();
+		try {
+			const { cypher, params } = query.build();
+			const result = await session.run(cypher, params);
+			return result.records.map((record) => record.toObject());
+		} finally {
+			await session.close();
+		}
+	}
+
+	// Tenant-aware query execution - automatically adds tenant isolation
+	async executeTenantQuery(
+		cypher: string,
+		params: Record<string, any> = {},
+		tenantId?: string,
+	): Promise<any[]> {
+		const effectiveTenantId = tenantId || this.tenantId;
+		if (!effectiveTenantId) {
+			throw new Error("Tenant ID is required for tenant-aware queries");
+		}
+
+		// Add tenant filter to query
+		const tenantQuery = `${cypher} AND n.tenantId = $tenantId`;
+		const tenantParams = { ...params, tenantId: effectiveTenantId };
+
+		return this.executeQuery(tenantQuery, tenantParams);
+	}
+
+	// Tenant-aware CypherQuery execution
+	async executeTenantCypherQuery(query: CypherResult, tenantId?: string): Promise<any[]> {
+		const effectiveTenantId = tenantId || this.tenantId;
+		if (!effectiveTenantId) {
+			throw new Error("Tenant ID is required for tenant-aware queries");
+		}
+
+		// Modify query to include tenant filter
+		const tenantQuery = query.where(cypher.param("tenantId").equals(cypher.param("effectiveTenantId")));
+		const { cypher: cypherStr, params } = tenantQuery.build();
+		const tenantParams = { ...params, effectiveTenantId };
+
+		const session = this.connection.getDriver().session();
+		try {
+			const result = await session.run(cypherStr, tenantParams);
+			return result.records.map((record) => record.toObject());
+		} finally {
+			await session.close();
+		}
+	}
 }
 
 // Repository base class
@@ -183,8 +234,16 @@ export class ProcessInstanceRepository extends BaseRepository<ProcessInstanceNod
 	async create(
 		data: Omit<ProcessInstanceNode, "id" | "createdAt" | "updatedAt">,
 	): Promise<ProcessInstanceNode> {
+		// Validate tenant context
+		if (!data.tenantId) {
+			throw new Error("Tenant ID is required for process instance creation");
+		}
+		if (!data.userId) {
+			throw new Error("User ID is required for process instance creation");
+		}
+
 		const id = `process-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-		const now = new Date();
+		const now = new Date().toISOString();
 
 		const instance: ProcessInstanceNode = {
 			...data,
@@ -193,31 +252,25 @@ export class ProcessInstanceRepository extends BaseRepository<ProcessInstanceNod
 			updatedAt: now,
 		};
 
-		await this.txManager.executeQuery(
-			`
-      CREATE (p:ProcessInstance {
-        id: $id,
-        processId: $processId,
-        businessKey: $businessKey,
-        status: $status,
-        variables: $variables,
-        startTime: datetime($startTime),
-        createdAt: datetime($createdAt),
-        updatedAt: datetime($updatedAt)
-      })
-    `,
-			{
-				id,
-				processId: data.processId,
-				businessKey: data.businessKey,
-				status: data.status,
-				variables: JSON.stringify(data.variables),
-				startTime: data.startTime.toISOString(),
-				createdAt: now.toISOString(),
-				updatedAt: now.toISOString(),
-			},
-		);
+		// Use tenant-aware cypher-builder for type-safe queries
+		const query = cypher
+			.create([
+				cypher.node("p", "ProcessInstance", {
+					id,
+					processId: data.processId,
+					businessKey: data.businessKey,
+					tenantId: data.tenantId,
+					userId: data.userId,
+					status: data.status,
+					variables: JSON.stringify(data.variables),
+					startTime: data.startTime,
+					createdAt: now,
+					updatedAt: now,
+				}),
+			])
+			.return("p");
 
+		await this.txManager.executeTenantCypherQuery(query, data.tenantId);
 		return instance;
 	}
 
@@ -396,6 +449,210 @@ export function createSchemaManager(
 	connection: Neo4jConnection,
 ): SchemaManager {
 	return new SchemaManager(connection);
+}
+
+// Tenant Repository
+export class TenantRepository extends BaseRepository<TenantNode> {
+	async create(
+		data: Omit<TenantNode, "id" | "createdAt" | "updatedAt">,
+	): Promise<TenantNode> {
+		const id = `tenant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+		const now = new Date().toISOString();
+
+		const tenant: TenantNode = {
+			...data,
+			id,
+			createdAt: now,
+			updatedAt: now,
+		};
+
+		const query = cypher
+			.create([
+				cypher.node("t", "Tenant", {
+					id,
+					name: data.name,
+					domain: data.domain,
+					settings: JSON.stringify(data.settings),
+					createdAt: now,
+					updatedAt: now,
+				}),
+			])
+			.return("t");
+
+		await this.txManager.executeCypherQuery(query);
+		return tenant;
+	}
+
+	async findById(id: string): Promise<TenantNode | null> {
+		const results = await this.txManager.executeQuery(
+			`
+      MATCH (t:Tenant {id: $id})
+      RETURN t
+    `,
+			{ id },
+		);
+
+		if (results.length === 0) return null;
+
+		const record = results[0].t.properties;
+		return {
+			id: record.id,
+			name: record.name,
+			domain: record.domain,
+			settings: JSON.parse(record.settings),
+			createdAt: record.createdAt,
+			updatedAt: record.updatedAt,
+		};
+	}
+
+	async findByDomain(domain: string): Promise<TenantNode | null> {
+		const results = await this.txManager.executeQuery(
+			`
+      MATCH (t:Tenant {domain: $domain})
+      RETURN t
+    `,
+			{ domain },
+		);
+
+		if (results.length === 0) return null;
+
+		const record = results[0].t.properties;
+		return {
+			id: record.id,
+			name: record.name,
+			domain: record.domain,
+			settings: JSON.parse(record.settings),
+			createdAt: record.createdAt,
+			updatedAt: record.updatedAt,
+		};
+	}
+
+	async update(
+		id: string,
+		data: Partial<TenantNode>,
+	): Promise<TenantNode> {
+		const updates: string[] = [];
+		const params: Record<string, any> = { id };
+
+		if (data.name !== undefined) {
+			updates.push("t.name = $name");
+			params.name = data.name;
+		}
+
+		if (data.domain !== undefined) {
+			updates.push("t.domain = $domain");
+			params.domain = data.domain;
+		}
+
+		if (data.settings !== undefined) {
+			updates.push("t.settings = $settings");
+			params.settings = JSON.stringify(data.settings);
+		}
+
+		updates.push("t.updatedAt = datetime($updatedAt)");
+		params.updatedAt = new Date().toISOString();
+
+		await this.txManager.executeQuery(
+			`
+      MATCH (t:Tenant {id: $id})
+      SET ${updates.join(", ")}
+    `,
+			params,
+		);
+
+		const updated = await this.findById(id);
+		if (!updated) throw new Error(`Tenant ${id} not found after update`);
+		return updated;
+	}
+
+	async delete(id: string): Promise<void> {
+		await this.txManager.executeQuery(
+			`
+      MATCH (t:Tenant {id: $id})
+      DETACH DELETE t
+    `,
+			{ id },
+		);
+	}
+}
+
+// Tenant Context Manager
+export class TenantContextManager {
+	constructor(private connection: Neo4jConnection) {}
+
+	async getTenantContext(tenantId: string, userId: string): Promise<TenantContextNode | null> {
+		const txManager = createTransactionManager(this.connection);
+		const tenantRepo = createTenantRepository(this.connection, txManager);
+
+		const tenant = await tenantRepo.findById(tenantId);
+		if (!tenant) return null;
+
+		// Get user information (simplified - in real implementation, get from user service)
+		const userResults = await txManager.executeQuery(
+			`
+      MATCH (u:User {id: $userId, tenantId: $tenantId})
+      RETURN u
+    `,
+			{ userId, tenantId },
+		);
+
+		if (userResults.length === 0) return null;
+
+		const user = userResults[0].u.properties;
+
+		return {
+			tenantId,
+			tenantName: tenant.name,
+			tenantDomain: tenant.domain,
+			userId,
+			userRoles: user.roles || [],
+			permissions: user.permissions || [],
+			settings: tenant.settings,
+		};
+	}
+
+	async validateTenantAccess(tenantId: string, userId: string): Promise<boolean> {
+		const txManager = createTransactionManager(this.connection);
+		const results = await txManager.executeQuery(
+			`
+      MATCH (u:User {id: $userId, tenantId: $tenantId})
+      RETURN count(u) > 0 as hasAccess
+    `,
+			{ userId, tenantId },
+		);
+
+		return results[0]?.hasAccess || false;
+	}
+}
+
+// Factory functions for multi-tenancy
+export function createTenantRepository(
+	connection: Neo4jConnection,
+	txManager: TransactionManager,
+): TenantRepository {
+	return new TenantRepository(connection, txManager);
+}
+
+export function createTenantContextManager(
+	connection: Neo4jConnection,
+): TenantContextManager {
+	return new TenantContextManager(connection);
+}
+
+// Tenant-aware factory functions
+export function createTenantAwareTransactionManager(
+	connection: Neo4jConnection,
+	tenantId: string,
+): TransactionManager {
+	return new TransactionManager(connection, tenantId);
+}
+
+export function createTenantAwareProcessInstanceRepository(
+	connection: Neo4jConnection,
+	tenantId: string,
+): ProcessInstanceRepository {
+	const txManager = createTenantAwareTransactionManager(connection, tenantId);
+	return new ProcessInstanceRepository(connection, txManager);
 }
 
 // Utility query functions

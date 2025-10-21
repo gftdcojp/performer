@@ -42,6 +42,8 @@
 		"effect": "^3.6.0",
 		"neogma": "^1.15.1",
 		"neo4j-driver": "^5.22.0",
-		"@gftdcojp/performer-error-handling": "workspace:*"
+		"@neo4j/cypher-builder": "^2.8.1",
+		"@gftdcojp/performer-error-handling": "workspace:*",
+		"@gftdcojp/ai-gftd-ontology-typebox": "workspace:*"
 	}
 }

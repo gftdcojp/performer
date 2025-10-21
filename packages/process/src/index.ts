@@ -8,7 +8,7 @@ import {
     ErrorCodes,
     ErrorSeverity,
 } from "@gftdcojp/performer-error-handling";
-import { ProcessInstanceSchema } from "@gftdcojp/ai-gftd-ontology-typebox";
+import { ProcessInstanceSchema, TenantContextSchema, TenantProcessConfigSchema } from "@gftdcojp/ai-gftd-ontology-typebox";
 import { Static } from "@sinclair/typebox";
 
 // Dynamic import for browser-only modules

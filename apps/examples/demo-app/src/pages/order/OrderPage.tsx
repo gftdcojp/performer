@@ -1,25 +1,23 @@
-// Merkle DAG: demo_ui -> order_page -> react_components
-// Client-side UI for order processing page
+// Merkle DAG: demo_ui -> ontology -> order_page -> react_components
+// Client-side UI for order processing page with ontology integration
 
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { OrderSchema, validateProcessInstance } from "@gftdcojp/ai-gftd-ontology-typebox";
+import { Static } from "@sinclair/typebox";
 
-interface OrderData {
-	id: string;
-	businessKey: string;
-	customerId: string;
-	amount: number;
-	status: "draft" | "submitted" | "approved" | "rejected" | "paid";
+// Ontology-integrated OrderData
+type OrderData = Static<typeof OrderSchema> & {
+	// Additional UI-specific fields
 	items: Array<{
 		productId: string;
 		name: string;
 		quantity: number;
 		price: number;
 	}>;
-	createdAt: Date;
-	updatedAt: Date;
-}
+	amount: number;
+};
 
 interface OrderPageProps {
 	businessKey: string;
@@ -52,10 +50,14 @@ export default function OrderPage({
 
 			const mockData: OrderData = {
 				id: `order-${Date.now()}`,
-				businessKey,
+				tenantId: "tenant-demo", // Ontology required field
+				userId: "user-demo", // Ontology required field
+				orderNumber: `ORD-${Date.now()}`, // Ontology required field
+				name: `Order for ${businessKey}`, // Ontology required field
+				description: "Demo order for BPMN processing", // Ontology field
 				customerId: "customer-123",
 				amount: 750,
-				status: "submitted",
+				status: "submitted" as const,
 				items: [
 					{
 						productId: "prod-1",
@@ -70,9 +72,15 @@ export default function OrderPage({
 						price: 250,
 					},
 				],
-				createdAt: new Date(),
-				updatedAt: new Date(),
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
 			};
+
+			// Ontology validation
+			const validation = OrderSchema.safeParse(mockData);
+			if (!validation.success) {
+				console.warn("Order data does not conform to ontology:", validation.error);
+			}
 
 			setOrderData(mockData);
 		} catch (error) {
