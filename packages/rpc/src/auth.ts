@@ -2,6 +2,8 @@
 // Auth0 JWT integration with claim extraction and context injection
 
 import type { Context } from "./context";
+import { TenantContextSchema } from "@gftdcojp/ai-gftd-ontology-typebox";
+import { Static } from "@sinclair/typebox";
 
 // Auth0 JWT payload structure (standard claims + custom)
 export interface Auth0JwtPayload {
@@ -258,4 +260,165 @@ export function createContextFromRequestWithAuth(
 	}
 
 	return baseContext;
+}
+
+// Tenant-aware types
+export type TenantContext = Static<typeof TenantContextSchema>;
+
+// Tenant Authorization Manager
+export class TenantAuthorizationManager {
+	private tenantContexts: Map<string, TenantContext> = new Map();
+
+	// Register tenant context (typically loaded from database on startup)
+	registerTenantContext(tenantId: string, context: TenantContext): void {
+		this.tenantContexts.set(tenantId, context);
+	}
+
+	// Get tenant context
+	getTenantContext(tenantId: string): TenantContext | null {
+		return this.tenantContexts.get(tenantId) || null;
+	}
+
+	// Validate tenant access for user
+	validateTenantAccess(tenantId: string, userId: string, requiredPermissions: string[] = []): {
+		authorized: boolean;
+		reason?: string;
+		tenantContext?: TenantContext;
+	} {
+		const tenantContext = this.getTenantContext(tenantId);
+		if (!tenantContext) {
+			return { authorized: false, reason: "Tenant not found" };
+		}
+
+		// Check if user belongs to tenant
+		if (tenantContext.userId !== userId) {
+			return { authorized: false, reason: "User does not belong to tenant" };
+		}
+
+		// Check required permissions
+		const hasPermissions = requiredPermissions.every(permission =>
+			tenantContext.permissions.includes(permission)
+		);
+
+		if (!hasPermissions) {
+			return {
+				authorized: false,
+				reason: `Missing required permissions: ${requiredPermissions.join(', ')}`
+			};
+		}
+
+		return { authorized: true, tenantContext };
+	}
+
+	// Validate resource access within tenant
+	validateResourceAccess(
+		tenantId: string,
+		userId: string,
+		resourceType: string,
+		resourceId: string,
+		action: string
+	): { authorized: boolean; reason?: string } {
+		const accessCheck = this.validateTenantAccess(tenantId, userId, [`${resourceType}:${action}`]);
+		if (!accessCheck.authorized) {
+			return accessCheck;
+		}
+
+		// Additional resource-specific validation can be added here
+		// For example, checking ownership or hierarchical permissions
+
+		return { authorized: true };
+	}
+
+	// Get user permissions for tenant
+	getUserPermissions(tenantId: string, userId: string): string[] {
+		const tenantContext = this.getTenantContext(tenantId);
+		if (!tenantContext || tenantContext.userId !== userId) {
+			return [];
+		}
+
+		return tenantContext.permissions;
+	}
+
+	// Get user roles for tenant
+	getUserRoles(tenantId: string, userId: string): string[] {
+		const tenantContext = this.getTenantContext(tenantId);
+		if (!tenantContext || tenantContext.userId !== userId) {
+			return [];
+		}
+
+		return tenantContext.userRoles;
+	}
+
+	// Clear tenant contexts (useful for testing or cache invalidation)
+	clearTenantContexts(): void {
+		this.tenantContexts.clear();
+	}
+}
+
+// Enhanced JWT validation with tenant context
+export function validateJwtWithTenant(
+	token: string,
+	auth0Config: Auth0Config,
+	tenantAuthManager: TenantAuthorizationManager
+): {
+	valid: boolean;
+	payload?: Auth0JwtPayload;
+	tenantContext?: TenantContext;
+	error?: string;
+} {
+	const validation = validateJwt(token, auth0Config);
+	if (!validation.valid || !validation.payload) {
+		return validation;
+	}
+
+	const payload = validation.payload;
+
+	// Extract tenant information from JWT
+	const tenantId = payload.tenantId || payload.organizationId;
+	const userId = payload.sub;
+
+	if (!tenantId || !userId) {
+		return {
+			valid: false,
+			error: "JWT missing required tenant or user claims"
+		};
+	}
+
+	// Validate tenant access
+	const tenantAccess = tenantAuthManager.validateTenantAccess(tenantId, userId);
+	if (!tenantAccess.authorized) {
+		return {
+			valid: false,
+			error: tenantAccess.reason || "Tenant access denied"
+		};
+	}
+
+	return {
+		valid: true,
+		payload,
+		tenantContext: tenantAccess.tenantContext,
+	};
+}
+
+// Context builder with tenant information
+export function createTenantContext(
+	jwtPayload: Auth0JwtPayload,
+	tenantContext: TenantContext
+): Context {
+	return {
+		ports: {
+			clock: () => new Date(),
+		},
+		tenantId: tenantContext.tenantId,
+		userId: tenantContext.userId,
+		correlationId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+		timestamp: new Date(),
+		metadata: {
+			tenantName: tenantContext.tenantName,
+			tenantDomain: tenantContext.tenantDomain,
+			userRoles: tenantContext.userRoles,
+			permissions: tenantContext.permissions,
+			tenantSettings: tenantContext.settings,
+		},
+	};
 }

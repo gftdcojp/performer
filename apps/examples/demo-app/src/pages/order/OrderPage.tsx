@@ -4,7 +4,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { OrderSchema, validateProcessInstance } from "@gftdcojp/ai-gftd-ontology-typebox";
+import { OrderSchema, validateProcessInstance, TenantContextSchema, TenantOrderSchema } from "@gftdcojp/ai-gftd-ontology-typebox";
 import { Static } from "@sinclair/typebox";
 
 // Ontology-integrated OrderData
@@ -19,14 +19,19 @@ type OrderData = Static<typeof OrderSchema> & {
 	amount: number;
 };
 
+// Tenant Context for multi-tenant features
+type TenantContext = Static<typeof TenantContextSchema>;
+
 interface OrderPageProps {
 	businessKey: string;
 	initialData?: OrderData;
+	tenantContext?: TenantContext; // Multi-tenant support
 }
 
 export default function OrderPage({
 	businessKey,
 	initialData,
+	tenantContext,
 }: OrderPageProps) {
 	const [orderData, setOrderData] = useState<OrderData | null>(
 		initialData || null,
@@ -215,6 +220,33 @@ export default function OrderPage({
 		<>
 			<div className="min-h-screen bg-gray-50">
 				<div className="max-w-4xl mx-auto py-8 px-4">
+					{/* Tenant Context Header */}
+					{tenantContext && (
+						<div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+							<div className="flex items-center justify-between">
+								<div>
+									<h2 className="text-lg font-semibold text-blue-900">
+										{tenantContext.tenantName}
+									</h2>
+									<p className="text-blue-700 text-sm">
+										Domain: {tenantContext.tenantDomain} | User: {tenantContext.userId}
+									</p>
+									<div className="flex gap-2 mt-2">
+										{tenantContext.userRoles.map(role => (
+											<span key={role} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+												{role}
+											</span>
+										))}
+									</div>
+								</div>
+								<div className="text-right">
+									<p className="text-sm text-blue-600">Tenant ID</p>
+									<p className="font-mono text-sm">{tenantContext.tenantId}</p>
+								</div>
+							</div>
+						</div>
+					)}
+
 					{/* Header */}
 					<div className="bg-white shadow rounded-lg p-6 mb-6">
 						<div className="flex justify-between items-start">
@@ -225,6 +257,11 @@ export default function OrderPage({
 								<p className="text-gray-600 mt-1">
 									Business Key: {businessKey}
 								</p>
+								{tenantContext && (
+									<p className="text-blue-600 mt-1 text-sm">
+										Tenant Context: Active
+									</p>
+								)}
 							</div>
 							<button
 								onClick={() => {

@@ -43,6 +43,119 @@ export interface ProcessDefinition {
 // Use ProcessInstance from ontology
 export type ProcessInstance = Static<typeof ProcessInstanceSchema>;
 
+// Tenant-aware types
+export type TenantContext = Static<typeof TenantContextSchema>;
+export type TenantProcessConfig = Static<typeof TenantProcessConfigSchema>;
+
+// Tenant Context Manager for process execution
+export class TenantProcessContextManager {
+	constructor(private tenantContext: TenantContext) {}
+
+	// Validate if user has permission to execute process
+	validateProcessPermission(processType: string): boolean {
+		// Check tenant-specific permissions
+		const hasTenantPermission = this.tenantContext.permissions.includes(`process:${processType}:execute`);
+
+		// Check role-based permissions
+		const hasRolePermission = this.tenantContext.userRoles.some(role =>
+			role === 'admin' || role === 'process_manager' || role === `process_${processType}_executor`
+		);
+
+		return hasTenantPermission || hasRolePermission;
+	}
+
+	// Get tenant-specific process configuration
+	getTenantProcessConfig(processType: string): TenantProcessConfig | null {
+		// In real implementation, this would be fetched from database
+		// For now, return default config based on tenant settings
+		const tenantSettings = this.tenantContext.settings;
+
+		return {
+			tenantId: this.tenantContext.tenantId,
+			processDefinitions: [{
+				id: `${processType}-default`,
+				name: `Default ${processType} Process`,
+				version: "1.0.0",
+				isActive: true,
+				settings: tenantSettings,
+			}],
+			workflowRules: [{
+				ruleId: `tenant-${this.tenantContext.tenantId}-rule-1`,
+				processType,
+				conditions: {
+					tenantId: this.tenantContext.tenantId,
+					userRole: this.tenantContext.userRoles[0] || 'user',
+				},
+				actions: ['validate', 'execute', 'notify'],
+			}],
+			slaSettings: {
+				[processType]: {
+					maxDuration: tenantSettings.maxProcessDuration || 3600000, // 1 hour default
+					priority: tenantSettings.defaultPriority || 'normal',
+					escalationRules: ['email_notification', 'supervisor_alert'],
+				},
+			},
+		};
+	}
+
+	// Apply tenant-specific validation rules
+	validateTenantProcessRules(processData: any, processType: string): { valid: boolean; errors: string[] } {
+		const errors: string[] = [];
+		const config = this.getTenantProcessConfig(processType);
+
+		if (!config) {
+			errors.push(`No tenant configuration found for process type: ${processType}`);
+			return { valid: false, errors };
+		}
+
+		// Validate against tenant-specific rules
+		const rules = config.workflowRules.filter(rule => rule.processType === processType);
+
+		for (const rule of rules) {
+			if (!this.evaluateTenantRule(rule, processData)) {
+				errors.push(`Tenant rule violation: ${rule.ruleId}`);
+			}
+		}
+
+		// Validate SLA settings
+		const sla = config.slaSettings[processType];
+		if (sla) {
+			const currentTime = Date.now();
+			const startTime = new Date(processData.startTime || currentTime).getTime();
+
+			if (currentTime - startTime > sla.maxDuration) {
+				errors.push(`Process exceeded tenant SLA duration: ${sla.maxDuration}ms`);
+			}
+		}
+
+		return { valid: errors.length === 0, errors };
+	}
+
+	private evaluateTenantRule(rule: any, processData: any): boolean {
+		// Simple rule evaluation - in real implementation, use a proper rule engine
+		for (const [key, expectedValue] of Object.entries(rule.conditions)) {
+			const actualValue = processData[key] || this.tenantContext[key as keyof TenantContext];
+			if (actualValue !== expectedValue) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	// Get tenant-specific process variables
+	getTenantProcessVariables(baseVariables: Record<string, any> = {}): Record<string, any> {
+		return {
+			...baseVariables,
+			tenantId: this.tenantContext.tenantId,
+			tenantName: this.tenantContext.tenantName,
+			tenantDomain: this.tenantContext.tenantDomain,
+			userId: this.tenantContext.userId,
+			userRoles: this.tenantContext.userRoles,
+			tenantSettings: this.tenantContext.settings,
+		};
+	}
+}
+
 export interface Task {
 	id: string;
 	name: string;
