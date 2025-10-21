@@ -193,6 +193,16 @@
         "Link/NavLink/Breadcrumbs now provider-based",
         "Type-safe props validation with Zod"
       ]
+    },
+
+    // New ontology package
+    ontology: {
+      id: "pkg_ontology",
+      description: "DoDAF 2.0 Ontology implementation with TypeBox and JSON-LD",
+      dependencies: ["error-handling"],
+      provides: ["domain-ontology", "semantic-validation", "json-ld"],
+      status: "integrated",
+      recentChanges: ["Integrated from https://github.com/gftdcojp/ontology", "Added as internal package for domain modeling"]
     }
   },
 
@@ -319,7 +329,8 @@
       "pkg_rpc",
       "pkg_router",
       "pkg_ui",
-      "app_demo"
+      "app_demo",
+      "pkg_ontology"
     ],
 
     pendingNodes: [
@@ -358,7 +369,8 @@
       "✅ UI components library with Next.js Link wrapper completed",
       "✅ Enhanced navigation components with active state detection implemented",
       "✅ RPC framework with I/O validation, streaming, and observability completed",
-      "✅ Type-safe client SDK, Auth0 JWT integration, and OpenTelemetry metrics implemented"
+      "✅ Type-safe client SDK, Auth0 JWT integration, and OpenTelemetry metrics implemented",
+      "✅ Ontology integration completed using @gftdcojp/ai-gftd-ontology-typebox"
     ],
 
     shortTerm: [
