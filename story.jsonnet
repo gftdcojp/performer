@@ -370,7 +370,8 @@
       "✅ Enhanced navigation components with active state detection implemented",
       "✅ RPC framework with I/O validation, streaming, and observability completed",
       "✅ Type-safe client SDK, Auth0 JWT integration, and OpenTelemetry metrics implemented",
-      "✅ Ontology integration completed using @gftdcojp/ai-gftd-ontology-typebox"
+      "✅ Ontology integration completed using @gftdcojp/ai-gftd-ontology-typebox",
+      "Refactor domain models using TypeBox + JSON-LD for DoDAF compliance"
     ],
 
     shortTerm: [
@@ -382,7 +383,8 @@
       "CI: automated publish to GitHub Packages on tagged releases",
       "Real-time process monitoring",
       "Advanced error recovery",
-      "API documentation"
+      "API documentation",
+      "Validate architecture against DoDAF meta model using ontology tools"
     ],
 
     longTerm: [

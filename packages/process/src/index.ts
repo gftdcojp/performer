@@ -1,4 +1,4 @@
-// Merkle DAG: process_core -> bpmn_dsl -> engine -> task_handlers
+// Merkle DAG: process_core -> ontology -> bpmn_dsl -> engine -> task_handlers
 // BPMN SDK wrapper for DSL->IR->engine, start/signal/message, human task/SLA
 
 /// <reference lib="dom" />
@@ -8,6 +8,8 @@ import {
     ErrorCodes,
     ErrorSeverity,
 } from "@gftdcojp/performer-error-handling";
+import { ProcessInstanceSchema } from "@gftdcojp/ai-gftd-ontology-typebox";
+import { Static } from "@sinclair/typebox";
 
 // Dynamic import for browser-only modules
 let BpmnModeler: any = null;
@@ -38,15 +40,8 @@ export interface ProcessDefinition {
 	xml: string;
 }
 
-export interface ProcessInstance {
-	id: string;
-	processId: string;
-	businessKey: string;
-	status: "running" | "completed" | "suspended" | "terminated";
-	variables: Record<string, any>;
-	startTime: Date;
-	endTime?: Date;
-}
+// Use ProcessInstance from ontology
+export type ProcessInstance = Static<typeof ProcessInstanceSchema>;
 
 export interface Task {
 	id: string;

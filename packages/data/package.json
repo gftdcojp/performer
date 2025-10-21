@@ -41,6 +41,7 @@
 	"dependencies": {
 		"effect": "^3.6.0",
 		"neogma": "^1.15.1",
-		"neo4j-driver": "^5.22.0"
+		"neo4j-driver": "^5.22.0",
+		"@gftdcojp/performer-error-handling": "workspace:*"
 	}
 }

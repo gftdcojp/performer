@@ -54,10 +54,10 @@ export function isRunning(instance: ProcessInstance): boolean {
   return instance.status === "running";
 }
 
-// Placeholder exports for future modules
-export const actions = {};
-export const actor = {};
-export const data = {};
-export const errorHandling = {};
-export const process = {};
+// Re-export from dependent packages
+export * as actions from "@gftdcojp/performer-actions";
+export * as actor from "@gftdcojp/performer-actor";
+export * as data from "@gftdcojp/performer-data";
+export * as errorHandling from "@gftdcojp/performer-error-handling";
+export * as process from "@gftdcojp/performer-process";
 export { FileRouter, SSRPipeline, type RouterConfig, type RouteMatch } from "./router/index";
