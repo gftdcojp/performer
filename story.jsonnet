@@ -114,11 +114,15 @@
 
     data: {
       id: "pkg_data",
-      description: "Neo4j database layer with Neogma ORM",
+      description: "Graph data layer via Graph Port (Neo4j/Neptune adapters)",
       dependencies: ["error-handling"],
-      provides: ["data-persistence", "query-abstraction", "transactions"],
+      provides: ["data-persistence", "query-abstraction", "transactions", "graph-port"],
       status: "implemented",
-      recentChanges: ["Added config property to Neo4jConnection class", "Renamed to @gftdcojp/performer-data and added publishConfig.registry"]
+      recentChanges: [
+        "Introduced Graph Port with Neo4j and Neptune adapters",
+        "Refactored TransactionManager to depend on GraphClient",
+        "Normalized datetime handling to ISO strings"
+      ]
     },
 
     'error-handling': {

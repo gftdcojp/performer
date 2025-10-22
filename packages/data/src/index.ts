@@ -1,93 +1,35 @@
-// Merkle DAG: data_core -> ontology -> neogma_models -> cypher_queries -> transaction_mgmt
-// Effect-cypher + neogma adapter for type-safe Cypher/Tx utilities/constraints with ontology integration
+// Merkle DAG: data_core -> ontology -> graph_port -> cypher_queries -> transaction_mgmt
+// Effect-cypher + graph port adapter for type-safe Cypher/Tx utilities/constraints with ontology integration
 
-import { Neogma, ModelFactory } from "neogma";
-import * as neo4j from "neo4j-driver";
-import { cypher, CypherResult } from "@neo4j/cypher-builder";
-import {
-    dataErrorFactory,
-    withErrorHandling,
-    ErrorCodes,
-} from "@gftdcojp/performer-error-handling";
-import { ProcessInstanceSchema, UserSchema, TenantSchema, TenantContextSchema, TenantProcessConfigSchema, PerformerSchemas } from "@gftdcojp/ai-gftd-ontology-typebox";
-import { Static } from "@sinclair/typebox";
+import { cypher, type CypherResult } from "@neo4j/cypher-builder";
+import { dataErrorFactory, withErrorHandling } from "@gftdcojp/performer-error-handling";
+import type { ProcessInstanceSchema, UserSchema, TenantSchema, TenantContextSchema, TenantProcessConfigSchema } from "@gftdcojp/ai-gftd-ontology-typebox";
+import type { Static } from "@sinclair/typebox";
+import { createGraphClient } from "./graph/port";
+import type { GraphClient, Neo4jBackendConfig, NeptuneBackendConfig, GraphConfig } from "./graph/port";
 
 // Neo4j connection configuration
-export interface Neo4jConfig {
-	uri: string;
-	username: string;
-	password: string;
-	database?: string;
-}
+export interface Neo4jConfig extends Neo4jBackendConfig {}
 
 // Initialize Neogma instance
 export class Neo4jConnection {
-	private neogma: Neogma;
-	private driver: neo4j.Driver;
-	private config: Neo4jConfig;
-
-	constructor(config: Neo4jConfig) {
-		this.config = config;
-		this.driver = neo4j.driver(
-			config.uri,
-			neo4j.auth.basic(config.username, config.password),
-			{ disableLosslessIntegers: true },
-		);
-
-		this.neogma = new Neogma(
-			{
-				url: config.uri,
-				username: config.username,
-				password: config.password,
-				...(config.database && { database: config.database }),
-			},
-			{
-				logger: console.log,
-			},
-		);
-	}
-
-	getNeogma(): Neogma {
-		return this.neogma;
-	}
-
-	getDriver(): neo4j.Driver {
-		return this.driver;
-	}
-
-	async close(): Promise<void> {
-		await this.driver.close();
-	}
-
-	async verifyConnection(): Promise<void> {
-		return withErrorHandling(
-			async () => {
-				const session = this.driver.session();
-				try {
-					await session.run("RETURN 1");
-				} catch (error) {
-					throw dataErrorFactory.databaseError(
-						"verifyConnection",
-						error as Error,
-						{
-							suggestedAction:
-								"Check Neo4j connection parameters and server status",
-							metadata: {
-								config: {
-									uri: this.config.uri,
-									database: this.config.database,
-								},
-							},
-						},
-					);
-				} finally {
-					await session.close();
-				}
-			},
-			dataErrorFactory,
-			"verifyConnection",
-		);
-	}
+    private client: GraphClient;
+    private config: Neo4jConfig;
+    constructor(config: Neo4jConfig) {
+        this.config = config;
+        this.client = createGraphClient({ type: "neo4j", ...config });
+    }
+    getClient(): GraphClient { return this.client; }
+    async close(): Promise<void> { await this.client.close(); }
+    async verifyConnection(): Promise<void> {
+        return withErrorHandling(
+            async () => {
+                await this.client.verify();
+            },
+            dataErrorFactory,
+            "verifyConnection",
+        );
+    }
 }
 
 // Base model with common fields (ontology-compliant)
@@ -112,7 +54,7 @@ export interface TaskNode extends BaseNode {
 	status: "created" | "assigned" | "completed" | "failed";
 	dueDate?: Date;
 	priority?: number;
-	variables: Record<string, any>;
+    variables: Record<string, unknown>;
 }
 
 // Note: ModelFactory usage simplified for basic operations
@@ -136,84 +78,18 @@ export type TenantProcessConfigModel = TenantProcessConfigNode;
 
 // Transaction Manager (enhanced with cypher-builder and tenant isolation)
 export class TransactionManager {
-	constructor(private connection: Neo4jConnection, private tenantId?: string) {}
+    constructor(private client: GraphClient) {}
 
-	async executeInTransaction<T>(
-		operation: (tx: neo4j.ManagedTransaction) => Promise<T>,
-	): Promise<T> {
-		const session = this.connection.getDriver().session();
+    async executeQuery(
+        cypherStr: string,
+        params: Record<string, unknown> = {},
+    ): Promise<Record<string, unknown>[]> {
+        return this.client.run(cypherStr, params);
+    }
 
-		try {
-			const result = await session.executeWrite(operation);
-			return result;
-		} finally {
-			await session.close();
-		}
-	}
-
-	async executeQuery(
-		cypher: string,
-		params: Record<string, any> = {},
-	): Promise<any[]> {
-		const session = this.connection.getDriver().session();
-		try {
-			const result = await session.run(cypher, params);
-			return result.records.map((record) => record.toObject());
-		} finally {
-			await session.close();
-		}
-	}
-
-	// Execute CypherQuery using cypher-builder
-	async executeCypherQuery(query: CypherResult): Promise<any[]> {
-		const session = this.connection.getDriver().session();
-		try {
-			const { cypher, params } = query.build();
-			const result = await session.run(cypher, params);
-			return result.records.map((record) => record.toObject());
-		} finally {
-			await session.close();
-		}
-	}
-
-	// Tenant-aware query execution - automatically adds tenant isolation
-	async executeTenantQuery(
-		cypher: string,
-		params: Record<string, any> = {},
-		tenantId?: string,
-	): Promise<any[]> {
-		const effectiveTenantId = tenantId || this.tenantId;
-		if (!effectiveTenantId) {
-			throw new Error("Tenant ID is required for tenant-aware queries");
-		}
-
-		// Add tenant filter to query
-		const tenantQuery = `${cypher} AND n.tenantId = $tenantId`;
-		const tenantParams = { ...params, tenantId: effectiveTenantId };
-
-		return this.executeQuery(tenantQuery, tenantParams);
-	}
-
-	// Tenant-aware CypherQuery execution
-	async executeTenantCypherQuery(query: CypherResult, tenantId?: string): Promise<any[]> {
-		const effectiveTenantId = tenantId || this.tenantId;
-		if (!effectiveTenantId) {
-			throw new Error("Tenant ID is required for tenant-aware queries");
-		}
-
-		// Modify query to include tenant filter
-		const tenantQuery = query.where(cypher.param("tenantId").equals(cypher.param("effectiveTenantId")));
-		const { cypher: cypherStr, params } = tenantQuery.build();
-		const tenantParams = { ...params, effectiveTenantId };
-
-		const session = this.connection.getDriver().session();
-		try {
-			const result = await session.run(cypherStr, tenantParams);
-			return result.records.map((record) => record.toObject());
-		} finally {
-			await session.close();
-		}
-	}
+    async executeCypherQuery(query: CypherResult): Promise<Record<string, unknown>[]> {
+        return this.client.runBuilder(query);
+    }
 }
 
 // Repository base class
@@ -252,8 +128,8 @@ export class ProcessInstanceRepository extends BaseRepository<ProcessInstanceNod
 			updatedAt: now,
 		};
 
-		// Use tenant-aware cypher-builder for type-safe queries
-		const query = cypher
+        // Use cypher-builder for type-safe queries
+        const query = cypher
 			.create([
 				cypher.node("p", "ProcessInstance", {
 					id,
@@ -262,15 +138,15 @@ export class ProcessInstanceRepository extends BaseRepository<ProcessInstanceNod
 					tenantId: data.tenantId,
 					userId: data.userId,
 					status: data.status,
-					variables: JSON.stringify(data.variables),
-					startTime: data.startTime,
+                    variables: JSON.stringify(data.variables),
+                    startTime: data.startTime,
 					createdAt: now,
 					updatedAt: now,
 				}),
 			])
 			.return("p");
 
-		await this.txManager.executeTenantCypherQuery(query, data.tenantId);
+        await this.txManager.executeCypherQuery(query);
 		return instance;
 	}
 
@@ -330,8 +206,8 @@ export class ProcessInstanceRepository extends BaseRepository<ProcessInstanceNod
 		id: string,
 		data: Partial<ProcessInstanceNode>,
 	): Promise<ProcessInstanceNode> {
-		const updates: string[] = [];
-		const params: Record<string, any> = { id };
+        const updates: string[] = [];
+        const params: Record<string, unknown> = { id };
 
 		if (data.status !== undefined) {
 			updates.push("p.status = $status");
@@ -343,12 +219,12 @@ export class ProcessInstanceRepository extends BaseRepository<ProcessInstanceNod
 			params.variables = JSON.stringify(data.variables);
 		}
 
-		if (data.endTime !== undefined) {
-			updates.push("p.endTime = datetime($endTime)");
-			params.endTime = data.endTime.toISOString();
-		}
+        if (data.endTime !== undefined) {
+            updates.push("p.endTime = $endTime");
+            params.endTime = data.endTime.toISOString();
+        }
 
-		updates.push("p.updatedAt = datetime($updatedAt)");
+        updates.push("p.updatedAt = $updatedAt");
 		params.updatedAt = new Date().toISOString();
 
 		await this.txManager.executeQuery(
@@ -378,52 +254,45 @@ export class ProcessInstanceRepository extends BaseRepository<ProcessInstanceNod
 
 // Constraint and Index Management
 export class SchemaManager {
-	constructor(private connection: Neo4jConnection) {}
+    constructor(private connection: Neo4jConnection) {}
 
 	async createConstraints(): Promise<void> {
-		const session = this.connection.getDriver().session();
-
-		try {
-			// Unique constraints
-			await session.run(
-				"CREATE CONSTRAINT process_instance_id_unique IF NOT EXISTS FOR (p:ProcessInstance) REQUIRE p.id IS UNIQUE",
-			);
-			await session.run(
-				"CREATE CONSTRAINT task_id_unique IF NOT EXISTS FOR (t:Task) REQUIRE t.id IS UNIQUE",
-			);
-			await session.run(
-				"CREATE CONSTRAINT user_id_unique IF NOT EXISTS FOR (u:User) REQUIRE u.id IS UNIQUE",
-			);
-
-			// Indexes
-			await session.run(
-				"CREATE INDEX process_instance_business_key IF NOT EXISTS FOR (p:ProcessInstance) ON (p.businessKey)",
-			);
-			await session.run(
-				"CREATE INDEX task_assignee IF NOT EXISTS FOR (t:Task) ON (t.assignee)",
-			);
-			await session.run(
-				"CREATE INDEX user_tenant IF NOT EXISTS FOR (u:User) ON (u.tenantId)",
-			);
-		} finally {
-			await session.close();
-		}
+        // Delegated to GraphClient (neo4j-only). If different backend, no-op.
+        const client = this.connection.getClient();
+        if (client.backend() !== "neo4j") return;
+        try {
+            await client.run(
+                "CREATE CONSTRAINT process_instance_id_unique IF NOT EXISTS FOR (p:ProcessInstance) REQUIRE p.id IS UNIQUE",
+            );
+            await client.run(
+                "CREATE CONSTRAINT task_id_unique IF NOT EXISTS FOR (t:Task) REQUIRE t.id IS UNIQUE",
+            );
+            await client.run(
+                "CREATE CONSTRAINT user_id_unique IF NOT EXISTS FOR (u:User) REQUIRE u.id IS UNIQUE",
+            );
+            await client.run(
+                "CREATE INDEX process_instance_business_key IF NOT EXISTS FOR (p:ProcessInstance) ON (p.businessKey)",
+            );
+            await client.run(
+                "CREATE INDEX task_assignee IF NOT EXISTS FOR (t:Task) ON (t.assignee)",
+            );
+            await client.run(
+                "CREATE INDEX user_tenant IF NOT EXISTS FOR (u:User) ON (u.tenantId)",
+            );
+        } finally {}
 	}
 
 	async dropConstraints(): Promise<void> {
-		const session = this.connection.getDriver().session();
-
-		try {
-			await session.run("DROP CONSTRAINT process_instance_id_unique IF EXISTS");
-			await session.run("DROP CONSTRAINT task_id_unique IF EXISTS");
-			await session.run("DROP CONSTRAINT user_id_unique IF EXISTS");
-
-			await session.run("DROP INDEX process_instance_business_key IF EXISTS");
-			await session.run("DROP INDEX task_assignee IF EXISTS");
-			await session.run("DROP INDEX user_tenant IF EXISTS");
-		} finally {
-			await session.close();
-		}
+        const client = this.connection.getClient();
+        if (client.backend() !== "neo4j") return;
+        try {
+            await client.run("DROP CONSTRAINT process_instance_id_unique IF EXISTS");
+            await client.run("DROP CONSTRAINT task_id_unique IF EXISTS");
+            await client.run("DROP CONSTRAINT user_id_unique IF EXISTS");
+            await client.run("DROP INDEX process_instance_business_key IF EXISTS");
+            await client.run("DROP INDEX task_assignee IF EXISTS");
+            await client.run("DROP INDEX user_tenant IF EXISTS");
+        } finally {}
 	}
 }
 
@@ -433,9 +302,9 @@ export function createNeo4jConnection(config: Neo4jConfig): Neo4jConnection {
 }
 
 export function createTransactionManager(
-	connection: Neo4jConnection,
+    connection: Neo4jConnection,
 ): TransactionManager {
-	return new TransactionManager(connection);
+    return new TransactionManager(connection.getClient());
 }
 
 export function createProcessInstanceRepository(
@@ -448,7 +317,21 @@ export function createProcessInstanceRepository(
 export function createSchemaManager(
 	connection: Neo4jConnection,
 ): SchemaManager {
-	return new SchemaManager(connection);
+    return new SchemaManager(connection);
+}
+
+// Public: Graph Port exports for advanced usage (e.g., Neptune)
+export { createGraphClient } from "./graph/port";
+export type { GraphClient, GraphConfig, Neo4jBackendConfig, NeptuneBackendConfig } from "./graph/port";
+
+export function createNeptuneGraphClient(
+    config: Omit<NeptuneBackendConfig, "type">,
+): GraphClient {
+    return createGraphClient({ type: "neptune", ...config });
+}
+
+export function createTransactionManagerFromClient(client: GraphClient): TransactionManager {
+    return new TransactionManager(client);
 }
 
 // Tenant Repository
@@ -531,8 +414,8 @@ export class TenantRepository extends BaseRepository<TenantNode> {
 		id: string,
 		data: Partial<TenantNode>,
 	): Promise<TenantNode> {
-		const updates: string[] = [];
-		const params: Record<string, any> = { id };
+        const updates: string[] = [];
+        const params: Record<string, unknown> = { id };
 
 		if (data.name !== undefined) {
 			updates.push("t.name = $name");
@@ -549,7 +432,7 @@ export class TenantRepository extends BaseRepository<TenantNode> {
 			params.settings = JSON.stringify(data.settings);
 		}
 
-		updates.push("t.updatedAt = datetime($updatedAt)");
+        updates.push("t.updatedAt = $updatedAt");
 		params.updatedAt = new Date().toISOString();
 
 		await this.txManager.executeQuery(
@@ -641,10 +524,11 @@ export function createTenantContextManager(
 
 // Tenant-aware factory functions
 export function createTenantAwareTransactionManager(
-	connection: Neo4jConnection,
-	tenantId: string,
+    connection: Neo4jConnection,
+    tenantId: string,
 ): TransactionManager {
-	return new TransactionManager(connection, tenantId);
+    // Tenant filtering is expected to be added at query level by callers.
+    return new TransactionManager(connection.getClient());
 }
 
 export function createTenantAwareProcessInstanceRepository(
@@ -660,10 +544,10 @@ export const q = {
 	matchNode: (
 		alias: string,
 		label: string,
-		properties: Record<string, any>,
+        properties: Record<string, unknown>,
 	) => ({
 		ret: (...fields: string[]) => ({
-			one: async (connection: Neo4jConnection): Promise<any> => {
+            one: async (connection: Neo4jConnection): Promise<Record<string, unknown> | null> => {
 				const txManager = createTransactionManager(connection);
 				const conditions = Object.keys(properties)
 					.map((key) => `${alias}.${key} = $${key}`)

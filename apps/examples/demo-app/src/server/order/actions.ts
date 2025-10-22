@@ -49,11 +49,11 @@ const auth0Config = {
 	audience: "your-audience",
 };
 
-// Database setup
+// Database setup (Neo4j default; Neptune is supported via graph port at lower layer)
 const neo4jConfig = {
-	uri: process.env.NEO4J_URI || "bolt://localhost:7687",
-	username: process.env.NEO4J_USER || "neo4j",
-	password: process.env.NEO4J_PASSWORD || "password",
+    uri: process.env.NEO4J_URI || "bolt://localhost:7687",
+    username: process.env.NEO4J_USER || "neo4j",
+    password: process.env.NEO4J_PASSWORD || "password",
 };
 
 const connection = createNeo4jConnection(neo4jConfig);

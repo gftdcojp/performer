@@ -44,6 +44,9 @@
 		"neo4j-driver": "^5.22.0",
 		"@neo4j/cypher-builder": "^2.8.1",
 		"@gftdcojp/performer-error-handling": "workspace:*",
-		"@gftdcojp/ai-gftd-ontology-typebox": "workspace:*"
+		"@gftdcojp/ai-gftd-ontology-typebox": "workspace:*",
+		"@aws-crypto/sha256-js": "^5.2.0",
+		"@aws-sdk/credential-providers": "^3.660.0",
+		"@aws-sdk/signature-v4": "^3.660.0"
 	}
 }
